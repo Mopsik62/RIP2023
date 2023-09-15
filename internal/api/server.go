@@ -17,7 +17,7 @@ type Card struct {
 var cards = []Card{
 	{1, "Кальций", "", "image/Ca.jpg"},
 	{2, "Золото", "", "image/Au.jpg"},
-	{3, "Свинец", "", "image/Pb.jpg"},
+	{3, "Свинья", "", "image/Pb.jpg"},
 	{4, "Медь", "", "image/Cu.jpg"},
 }
 

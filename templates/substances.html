@@ -9,8 +9,8 @@
 
 <div>
     <form method="GET" action="" name="search" style="display:flex;align-items: center;">
-        <label for="card_title" style="float:left;margin-right: 10px;margin-left:10px">Введите название:</label>
-        <input type="text" id="card_title" name="card_title" style="float:left;margin-right: 20px;">
+        <label for="substance_name" style="float:left;margin-right: 10px;margin-left:10px">Введите название:</label>
+        <input type="text" id="substance_name" name="substance_name" style="float:left;margin-right: 20px;" value= "{{ .substance_name }}">
         <input type="submit" class="button" value="Поиск" style="cursor: pointer !important;">
     </form>
 </div>
@@ -18,13 +18,10 @@
     {{ range .cards}}
     <div class="card">
         <img class="card_image" src="{{ .Image }}" alt="картинка">
-        <h5 class="card_title">{{ .Title }}</h5>
-        <p class="card-text">{{ .Text }}</p>
-        <a class="button card_button" href="{{ .Title }}">Перейти к синтезу</a>
+        <h5 class="substance_name">{{ .Title }}</h5>
+        <a class="button card_button" href="{{ .Title }}">Подробнее</a>
         <div style="margin-bottom: 10px;"></div>
     </div>
     {{ end }}
 </div>
-<div style="flex:1"></div>
-<footer>Copyright (c) 2023 Nikita Lyalko </footer>
 </html>

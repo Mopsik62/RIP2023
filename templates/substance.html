@@ -3,16 +3,14 @@
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <div class="header">
-    <h1> Заявки на синтез </h1>
-    <h4>{{ .Title }}</h4>
+    <h1> Подробнее о веществе </h1>
 </div>
 <div class="bg"></div>
 <div>
     <img src="{{ .Image }}" style="width: 200px;margin-left: 10px;">
-    <p style="margin-left: 10px;"> {{ .Text }}</p>
     <p style="margin-left: 10px;"> {{ .Title }}</p>
+    <p style="margin-left: 10px;">Порядковый номер - {{ .Number}}</p>
+    <p style="margin-left: 10px;">Научное название - {{ .Text }}</p>
     <a  class="button" href="..">На главную страницу</a>
 </div>
-<div style="flex:1"></div>
-<footer>Copyright (c) 2023 Nikita Lyalko </footer>
 </html>

@@ -15,9 +15,9 @@
     </form>
 </div>
 <div class="card_group">
-    {{ range .cards}}
+    {{ range .substances}}
     <div class="card">
-        <img class="card_image" src="{{ .Image }}" alt="картинка">
+        <img class="card_image" src="data:image/jpg;base64, {{ .Image }}" alt="картинка">
         <h5 class="substance_name">{{ .Title }}</h5>
         <a class="button card_button" href="{{ .Title }}">Подробнее</a>
         <div style="margin-bottom: 10px;"></div>

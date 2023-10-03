@@ -54,7 +54,17 @@
     text-decoration: none;
     text-align: center;
 }
-
+.button2 {
+    float:left;
+    border-radius: 4px;
+    border: solid 3px rgb(197, 99, 4);
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4);
+    background: rgb(234, 118, 6);
+    color: #FFF;
+    padding: 10px 50px;
+    text-decoration: none;
+    text-align: center;
+}
 .button:hover {
     background: #b0570d;
 }

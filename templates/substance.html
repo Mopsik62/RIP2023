@@ -7,10 +7,16 @@
 </div>
 <div class="bg"></div>
 <div>
-    <img src="{{ .Image }}" style="width: 200px;margin-left: 10px;">
+    <img class="card_image" src="data:image/jpg;base64, {{ .Image }}" alt="картинка">
     <p style="margin-left: 10px;"> {{ .Title }}</p>
     <p style="margin-left: 10px;">Порядковый номер - {{ .Number}}</p>
     <p style="margin-left: 10px;">Научное название - {{ .Text }}</p>
-    <a  class="button" href="..">На главную страницу</a>
+    <a  class="button" href=".." >На главную страницу</a>
+
+    <form method="POST" action="delete_substance/{{ .Title }}" name="delete_substance">
+        <input type="hidden" name="card_title" id="card_title" value="{{ .Title }}">
+        <input type="submit" class="button" value="Сменить статус">
+    </form>
+
 </div>
 </html>

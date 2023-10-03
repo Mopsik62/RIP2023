@@ -1,78 +1,108 @@
-package api
+package app
 
 import (
+	"awesomeProject1/internal/app/dsn"
+	"awesomeProject1/internal/app/repository"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"strings"
 )
 
-type Card struct {
-	ID     int
-	Title  string
-	Text   string
-	Number string
-	Image  string
+type Application struct {
+	repo repository.Repository
+	r    *gin.Engine
 }
 
-var cards = []Card{
-	{1, "Кальций", "Ca", "20", "image/Ca.jpg"},
-	{2, "Золото", "Au", "79", "image/Au.jpg"},
-	{3, "Свинец", "Pb", "82", "image/Pb.jpg"},
-	{4, "Медь", "Cu", "29", "image/Cu.jpg"},
+func New() Application {
+	app := Application{}
+	//log.Println("Application start3333333!")
+
+	repo, _ := repository.New(dsn.FromEnv())
+	log.Println("Application start444444!")
+	log.Println(repo)
+	app.repo = *repo
+
+	return app
+
 }
 
-func StartServer() {
-	log.Println("Server start up")
-	r := gin.Default()
+func (a *Application) StartServer() {
+	//log.Println("Server start up")
+	//log.Println("Server start up0")
+	a.r = gin.Default()
+	log.Println("Server start up1")
+	a.r.GET("/", a.loadSubstances)
+	a.r.GET("/:substance_name", a.loadSubstance)
+	a.r.POST("/delete_substance/:substance_name", a.loadSubstanceChangeVisibility)
 
-	r.LoadHTMLGlob("templates/*html")
-	r.Static("/image", "./resources/image")
-	r.Static("/css", "./templates/css")
+	log.Println("Server start up2")
+	a.r.LoadHTMLGlob("templates/*.html")
+	//r.Static("/image", "./resources/image")
+	a.r.Static("/css", "./templates/css")
 
-	r.GET("/", loadSubstances)
-	r.GET("/:title", loadSubstance)
+	a.r.Static("/image", "./resources")
 
-	r.Run(":8000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	a.r.Run(":8000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 	log.Println("Server down")
 }
-func loadSubstances(c *gin.Context) {
+func (a *Application) loadSubstances(c *gin.Context) {
 	substance_name := c.Query("substance_name")
 
 	if substance_name == "" {
+		all_substances, err := a.repo.GetAllSubstances()
+
+		if err != nil {
+			log.Println(err)
+			c.Error(err)
+		}
+
 		c.HTML(http.StatusOK, "substances.html", gin.H{
-			"cards": cards,
+			"substances": all_substances,
 		})
+	} else {
+		found_substances, err := a.repo.SearchSubstances(substance_name)
+
+		if err != nil {
+			c.Error(err)
+			return
+		}
+
+		c.HTML(http.StatusOK, "substances.html", gin.H{
+			"substances":  found_substances,
+			"Search_text": substance_name,
+		})
+	}
+}
+func (a *Application) loadSubstance(c *gin.Context) {
+	substance_name := c.Param("substance_name")
+
+	if substance_name == "favicon.ico" {
 		return
 	}
 
-	foundCards := []Card{}
-	lowerCardTitle := strings.ToLower(substance_name)
-	for i := range cards {
-		if strings.Contains(strings.ToLower(cards[i].Title), lowerCardTitle) {
-			foundCards = append(foundCards, cards[i])
-		}
+	substance, err := a.repo.GetSubstanceByName(substance_name)
+
+	if err != nil {
+		c.Error(err)
+		return
 	}
 
-	c.HTML(http.StatusOK, "substances.html", gin.H{
-		"cards":          foundCards,
-		"substance_name": substance_name,
+	c.HTML(http.StatusOK, "substance.html", gin.H{
+		"Title":  substance.Title,
+		"Image":  substance.Image,
+		"Text":   substance.Text,
+		"Number": substance.Number,
 	})
-
 }
-func loadSubstance(c *gin.Context) {
-	title := c.Param("title")
 
-	for i := range cards {
-		if cards[i].Title == title {
-			c.HTML(http.StatusOK, "substance.html", gin.H{
-				"Title":  cards[i].Title,
-				"Image":  "../" + cards[i].Image,
-				"Text":   cards[i].Text,
-				"Number": cards[i].Number,
-			})
-			return
-		}
+func (a *Application) loadSubstanceChangeVisibility(c *gin.Context) {
+	substance_name := c.Param("substance_name")
+	err := a.repo.ChangeSubstanceVisibility(substance_name)
+
+	if err != nil {
+		c.Error(err)
 	}
+
+	c.Redirect(http.StatusFound, "/")
 }

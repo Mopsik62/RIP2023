@@ -89,10 +89,11 @@ func (a *Application) loadSubstance(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "substance.html", gin.H{
-		"Title":  substance.Title,
-		"Image":  substance.Image,
-		"Text":   substance.Text,
-		"Number": substance.Number,
+		"Title":   substance.Title,
+		"Image":   substance.Image,
+		"Text":    substance.Class,
+		"Formula": substance.Formula,
+		"Status":  substance.Status,
 	})
 }
 

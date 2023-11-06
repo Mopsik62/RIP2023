@@ -37,7 +37,7 @@ func (r *Repository) GetProductByID(id int) (*ds.Substances, error) {
 func (r *Repository) GetAllSubstances() ([]ds.Substances, error) {
 	substances := []ds.Substances{}
 
-	err := r.db.Order("id ASC").Find(&substances, "status = ?", "Активно").Error //err := r.db.First(&substance, "title = ?", name).Error
+	err := r.db.Order("Title ASC").Find(&substances, "status = ?", "Активно").Error //err := r.db.First(&substance, "title = ?", name).Error
 	//err := r.db.First(&substance, "title = ?", name).Error
 	if err != nil {
 		return nil, err
@@ -87,6 +87,16 @@ func (r *Repository) ChangeSubstanceVisibility(substance_name string) error {
 	} else {
 		new_status = "Активно"
 	}
+	//	query := "UPDATE substances SET status = ? WHERE title = ?"
+	//err = r.db.Exec(query, new_status, substance_name)
+	//return err
+	//err = r.db.Model(&ds.Substances{}).
+	//		Where("title = ?", substance_name).
+	//	Update("status", new_status).
+	//		Error
+	sql := "UPDATE substances SET status = ? WHERE title = ?"
+	err = r.db.Exec(sql, new_status, substance_name).Error
 
-	return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Update("status", new_status).Error
+	return err
+	//return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Update("status", new_status).Error
 }

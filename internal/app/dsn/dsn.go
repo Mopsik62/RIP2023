@@ -6,7 +6,6 @@ import (
 )
 
 func FromEnv() string {
-	// Set the USERNAME environment variable to "MattDaemon"
 	os.Setenv("DB_HOST", "0.0.0.0")
 	os.Setenv("DB_NAME", "One-pot")
 	os.Setenv("DB_PASS", "1")

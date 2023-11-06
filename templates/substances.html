@@ -21,6 +21,10 @@
         <h5 class="substance_name">{{ .Title }}</h5>
         <a class="button card_button" href="{{ .Title }}">Подробнее</a>
         <div style="margin-bottom: 10px;"></div>
+        <form method="POST" action="delete_substance/{{ .Title }}" name="delete_substance">
+            <input type="hidden" name="card_title" id="card_title" value="{{ .Title }}">
+            <input type="submit" class="button" value="       Удалить       ">
+        </form>
     </div>
     {{ end }}
 </div>

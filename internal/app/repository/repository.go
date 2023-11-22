@@ -2,10 +2,11 @@ package repository
 
 import (
 	"awesomeProject1/internal/app/ds"
+	"gorm.io/datatypes"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
-	"strings"
+	"time"
 )
 
 type Repository struct {
@@ -14,7 +15,6 @@ type Repository struct {
 
 func New(dsn string) (*Repository, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	log.Println("Application start55555!")
 	if err != nil {
 		return nil, err
 	}
@@ -23,80 +23,148 @@ func New(dsn string) (*Repository, error) {
 		db: db,
 	}, nil
 }
-
-func (r *Repository) GetProductByID(id int) (*ds.Substances, error) {
-	product := &ds.Substances{}
-	log.Println("Application start66666!")
-	err := r.db.First(product, "id = ?", id).Error // find product with id = 1
-	if err != nil {
-		return nil, err
-	}
-
-	return product, nil
-}
-func (r *Repository) GetAllSubstances() ([]ds.Substances, error) {
+func (r *Repository) GetAllSubstances(title string, status string) ([]ds.Substances, error) {
 	substances := []ds.Substances{}
 
-	err := r.db.Order("Title ASC").Find(&substances, "status = ?", "Активно").Error //err := r.db.First(&substance, "title = ?", name).Error
-	//err := r.db.First(&substance, "title = ?", name).Error
+	var tx *gorm.DB = r.db
+
+	if title != "" {
+		tx = tx.Where("title = ?", title)
+	}
+	if status != "" {
+		tx = tx.Where("status = ?", status)
+	}
+
+	err := tx.Find(&substances).Error
+
 	if err != nil {
 		return nil, err
 	}
 
 	return substances, nil
 }
+func (r *Repository) GetDraft(status string) ([]ds.Syntheses, error) {
+	syntheses := []ds.Syntheses{}
 
-func (r *Repository) SearchSubstances(substance_name string) ([]ds.Substances, error) {
-	substances := []ds.Substances{}
+	var tx *gorm.DB = r.db
 
-	all_substances, all_substances_err := r.GetAllSubstances()
-
-	if all_substances_err != nil {
-		return nil, all_substances_err
+	if status != "" {
+		tx = tx.Where("status = ?", status)
 	}
 
-	for i := range all_substances {
-		if strings.Contains(strings.ToLower(all_substances[i].Title), strings.ToLower(substance_name)) {
-			substances = append(substances, all_substances[i])
-		}
+	err := tx.Find(&syntheses).Error
+
+	if err != nil {
+		return nil, err
 	}
 
-	return substances, nil
+	return syntheses, nil
 }
-func (r *Repository) GetSubstanceByName(name string) (*ds.Substances, error) {
-	substance := &ds.Substances{}
-	err := r.db.First(substance, "title = ?", name).Error
+func (r *Repository) FindSubstance(title string) ([]ds.Substances, error) {
+	substance := []ds.Substances{}
+	var tx *gorm.DB = r.db
+	if title != "" {
+		tx = tx.Where("title = ?", title)
+	}
+	log.Println("----- " + title)
+	err := tx.Find(&substance).Error
 	if err != nil {
 		return nil, err
 	}
 
 	return substance, nil
 }
-func (r *Repository) ChangeSubstanceVisibility(substance_name string) error {
-	substance, err := r.GetSubstanceByName(substance_name)
+func (r *Repository) GetAllSynthesis() ([]ds.Syntheses, error) {
+	var synthesis []ds.Syntheses
+
+	var tx *gorm.DB = r.db.Order("status, date_created")
+	err := tx.Find(&synthesis).Error
 
 	if err != nil {
-		log.Println(err)
+		return nil, err
+	}
+
+	return synthesis, nil
+}
+func (r *Repository) FindSynthesis(title string) ([]ds.Syntheses, error) {
+	synthesis := []ds.Syntheses{}
+	var tx *gorm.DB = r.db
+	if title != "" {
+		tx = tx.Where("name = ?", title)
+	}
+
+	err := tx.Find(&synthesis).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return synthesis, nil
+}
+func (r *Repository) CreateSubstance(substance ds.Substances) error {
+	return r.db.Create(&substance).Error
+}
+func (r *Repository) LogicalDeleteSynthesis(synthesis_id int) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", synthesis_id).Update("status", "Удалён").Error
+}
+func (r *Repository) EditSubstance(substance ds.Substances) error {
+	return r.db.Model(&ds.Substances{}).Where("title = ?", substance.Title).Updates(substance).Error
+}
+func (r *Repository) EditSynthesis(synthesis ds.Syntheses) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", synthesis.ID).Updates(synthesis).Error
+}
+func (r *Repository) CreateSynthesisSubstance(synthesis_substance ds.Synthesis_substance) error {
+	return r.db.Create(&synthesis_substance).Error
+}
+func (r *Repository) LogicalDeleteSubstance(substance_id int) error {
+	return r.db.Model(&ds.Substances{}).Where("id = ?", substance_id).Update("status", "Удалён").Error
+}
+func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) error {
+	user_id := requestBody.User_id
+	var substance_first, substance_second int
+	substance_first = requestBody.Substance_first
+	substance_second = requestBody.Substance_second
+
+	current_date := datatypes.Date(time.Now())
+
+	synthesis := ds.Syntheses{}
+	synthesis.Status = "Создана"
+	synthesis.Name = "test"
+	synthesis.User_ID = user_id
+	synthesis.Date_created = current_date
+
+	err := r.db.Omit("moderator_id").Create(&synthesis).Error
+	log.Println(synthesis.ID)
+	if err != nil {
 		return err
 	}
 
-	new_status := ""
-
-	if substance.Status == "Активно" {
-		new_status = "Неактивно"
-	} else {
-		new_status = "Активно"
-	}
-	//	query := "UPDATE substances SET status = ? WHERE title = ?"
-	//err = r.db.Exec(query, new_status, substance_name)
-	//return err
-	//err = r.db.Model(&ds.Substances{}).
-	//		Where("title = ?", substance_name).
-	//	Update("status", new_status).
-	//		Error
-	sql := "UPDATE substances SET status = ? WHERE title = ?"
-	err = r.db.Exec(sql, new_status, substance_name).Error
-
+	synthesis_substance := ds.Synthesis_substance{}
+	synthesis_substance.Synthesis_ID = synthesis.ID
+	synthesis_substance.Substance_ID = substance_first
+	synthesis_substance.Temperature = "0"
+	err = r.CreateSynthesisSubstance(synthesis_substance)
+	synthesis_substance.Substance_ID = substance_second
+	err = r.CreateSynthesisSubstance(synthesis_substance)
 	return err
-	//return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Update("status", new_status).Error
+
+}
+func (r *Repository) FindSubstanceOrder(id string) ([]ds.Synthesis_substance, error) {
+	substances := []ds.Synthesis_substance{}
+	var tx *gorm.DB = r.db
+	if id != "" {
+		tx = tx.Where("synthesis_id = ?", id)
+	}
+	log.Println(id)
+	err := tx.Find(&substances).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return substances, nil
+}
+func (r *Repository) CreateUser(user ds.Users) error {
+	return r.db.Create(&user).Error
+}
+func (r *Repository) OrderAdd(substance ds.Synthesis_substance) error {
+	return r.db.Create(&substance).Error
 }

@@ -23,17 +23,21 @@ func New(dsn string) (*Repository, error) {
 		db: db,
 	}, nil
 }
-func (r *Repository) GetAllSubstances(title string, status string) ([]ds.Substances, error) {
+func (r *Repository) GetAllSubstances(title string, status string, name_pattern string) ([]ds.Substances, error) {
 	substances := []ds.Substances{}
 
 	var tx *gorm.DB = r.db
 
+	if name_pattern != "" {
+		tx = tx.Where("title like ?", "%"+name_pattern+"%")
+
+	}
+
 	if title != "" {
 		tx = tx.Where("title = ?", title)
 	}
-	if status != "" {
-		tx = tx.Where("status = ?", status)
-	}
+
+	tx = tx.Where("status = ?", "Активно")
 
 	err := tx.Find(&substances).Error
 
@@ -104,7 +108,7 @@ func (r *Repository) CreateSubstance(substance ds.Substances) error {
 	return r.db.Create(&substance).Error
 }
 func (r *Repository) LogicalDeleteSynthesis(synthesis_id int) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", synthesis_id).Update("status", "Удалён").Error
+	return r.db.Model(&ds.Syntheses{}).Where("title = ?", synthesis_id).Update("status", "Удалён").Error
 }
 func (r *Repository) EditSubstance(substance ds.Substances) error {
 	return r.db.Model(&ds.Substances{}).Where("title = ?", substance.Title).Updates(substance).Error
@@ -115,8 +119,8 @@ func (r *Repository) EditSynthesis(synthesis ds.Syntheses) error {
 func (r *Repository) CreateSynthesisSubstance(synthesis_substance ds.Synthesis_substance) error {
 	return r.db.Create(&synthesis_substance).Error
 }
-func (r *Repository) LogicalDeleteSubstance(substance_id int) error {
-	return r.db.Model(&ds.Substances{}).Where("id = ?", substance_id).Update("status", "Удалён").Error
+func (r *Repository) LogicalDeleteSubstance(substance_name string) error {
+	return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Update("status", "Удалён").Error
 }
 func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) error {
 	user_id := requestBody.User_id

@@ -1,0 +1,9 @@
+.page_card {
+    height: 575px;
+    text-align: center;
+}
+
+.card_container {
+    display: flex;
+    justify-content: center;
+}

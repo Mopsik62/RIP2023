@@ -37,7 +37,7 @@ func (a *Application) StartServer() {
 
 	a.r.PUT("user/add", a.add_user)
 	a.r.PUT("substance/add", a.add_substance)
-	a.r.PUT("substance/delete/:substance_id", a.delete_substance)
+	a.r.PUT("substance/delete/:substance_name", a.delete_substance)
 	a.r.PUT("synthesis/delete/:synthesis_id", a.delete_synthesis)
 	a.r.PUT("substance/edit", a.edit_substance)
 	a.r.PUT("synthesis/edit", a.edit_synthesis)
@@ -66,11 +66,11 @@ func (a *Application) synthesis_draft(c *gin.Context) {
 	c.JSON(http.StatusFound, syntheses)
 }
 func (a *Application) get_substances(c *gin.Context) {
-	//var name_pattern = c.Query("name_pattern")
+	var name_pattern = c.Query("name_pattern")
 	var title = c.Query("title")
 	var status = c.Query("status")
 
-	substances, err := a.repo.GetAllSubstances(title, status)
+	substances, err := a.repo.GetAllSubstances(title, status, name_pattern)
 	if err != nil {
 		c.Error(err)
 		return
@@ -143,9 +143,9 @@ func (a *Application) delete_synthesis(c *gin.Context) {
 	c.String(http.StatusFound, "Synthesis was successfully deleted")
 }
 func (a *Application) delete_substance(c *gin.Context) {
-	substance_id, _ := strconv.Atoi(c.Param("substance_id"))
+	substance_name := c.Param("substance_name")
 
-	err := a.repo.LogicalDeleteSubstance(substance_id)
+	err := a.repo.LogicalDeleteSubstance(substance_name)
 
 	if err != nil {
 		c.Error(err)

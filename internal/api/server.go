@@ -4,11 +4,15 @@ import (
 	"awesomeProject1/internal/app/ds"
 	"awesomeProject1/internal/app/dsn"
 	"awesomeProject1/internal/app/repository"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"gorm.io/datatypes"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -56,21 +60,24 @@ func (a *Application) StartServer() {
 	a.r = gin.Default()
 	log.Println("Server start up1")
 	//#Услуги - GET список(1), GET одна запись(2), POST добавление(3), PUT изменение(4),
-	//DELETE удаление(5), POST добавление в заявку (6)
+	//DELETE удаление(5), POST добавление в заявку (6)(объединил с сформированием заявки)
 	a.r.GET("substances", a.get_substances)                        //(1)
 	a.r.GET("substances/:substance", a.get_substance)              //(2)
 	a.r.POST("substances/add", a.add_substance)                    //(3)
 	a.r.PUT("substances/:substance/edit", a.edit_substance)        //(4)
 	a.r.DELETE("substances/:substance/delete", a.delete_substance) //(5)
-	a.r.POST("substances/order_add", a.order_add)                  //(6)
+	a.r.POST("substances/:substance/add_image", a.add_image)
+	//a.r.POST("substances/order_add", a.order_add)                  //(6)
 	//Заявки - GET список(1),
 	//GET одна запись (2), PUT изменение(3),
 	//PUT сформировать создателем(4), PUT завершить/отклонить модератором(5), DELETE удаление(6)
-	a.r.GET("syntheses", a.get_syntheses)                         //(1)
-	a.r.GET("syntheses/:synthesis", a.get_synthesis)              //(2)
-	a.r.PUT("syntheses/:synthesis/edit", a.edit_synthesis)        //(3)
-	a.r.PUT("syntheses/generate", a.order_synthesis)              //(4)
-	a.r.PUT("syntheses/:synthesis/apply", a.apply_synthesis)      //(5)
+	a.r.GET("syntheses", a.get_syntheses)                              //(1)
+	a.r.GET("syntheses/:synthesis", a.get_synthesis)                   //(2)
+	a.r.PUT("syntheses/:synthesis/edit", a.edit_synthesis)             //(3)
+	a.r.PUT("syntheses/generate", a.order_synthesis)                   //(4)
+	a.r.PUT("syntheses/:synthesis/apply", a.apply_synthesis)           //(5)
+	a.r.PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user) //(5)
+
 	a.r.DELETE("syntheses/:synthesis/delete", a.delete_synthesis) //(6)
 	//a.r.GET("syntheses/:synthesis/substances", a.get_SubBySyn)
 
@@ -112,7 +119,7 @@ func (a *Application) get_substances(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusFound, response)
+	c.JSON(http.StatusOK, response)
 }
 func (a *Application) get_substance(c *gin.Context) {
 	var title = c.Param("substance")
@@ -123,15 +130,16 @@ func (a *Application) get_substance(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusFound, found_substance)
+	c.JSON(http.StatusOK, found_substance)
 
 }
 func (a *Application) get_syntheses(c *gin.Context) {
 	//var status = c.Query("status")
-	var date = c.Query("date")
+	var date1 = c.Query("date1")
+	var date2 = c.Query("date2")
 	var status = c.Query("status")
 
-	found_synthesis, err := a.repo.GetAllSynthesis(date, status)
+	found_synthesis, err := a.repo.GetAllSynthesis(date1, date2, status)
 	if err != nil {
 		c.Error(err)
 		return
@@ -165,6 +173,55 @@ func (a *Application) get_synthesis(c *gin.Context) {
 //		c.JSON(http.StatusFound, found_substances)
 //
 // }
+func (a *Application) add_image(c *gin.Context) {
+	substance_id, err := strconv.Atoi(c.Param("substance"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "Не получается прочитать ID субстанции")
+		log.Println("Не получается прочитать ID субстанции")
+		return
+	}
+
+	image, header, err := c.Request.FormFile("file")
+
+	if err != nil {
+		c.String(http.StatusBadRequest, "Не получается распознать картинку")
+		log.Println("Не получается распознать картинку")
+		return
+	}
+	defer image.Close()
+
+	minioClient, err := minio.New("127.0.0.1:9000", &minio.Options{
+		Creds:  credentials.NewStaticV4("minioadmin", "minioadmin", ""),
+		Secure: false,
+	})
+
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Не получается подключиться к minio")
+		log.Println("Не получается подключиться к minio")
+		return
+	}
+
+	objectName := header.Filename
+	_, err = minioClient.PutObject(c.Request.Context(), "substances", objectName, image, header.Size, minio.PutObjectOptions{})
+
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Не получилось загрузить картинку в minio")
+		log.Println("Не получилось загрузить картинку в minio")
+		return
+	}
+	objectName = "http://127.0.0.1:9000/substances/" + header.Filename
+
+	err = a.repo.SetSubstanceImage(substance_id, objectName)
+
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Не получается обновить картинку субстанции")
+		log.Println("Не получается обновить картинку субстанции")
+		return
+	}
+
+	c.String(http.StatusCreated, "Картинка загружена!")
+
+}
 func (a *Application) add_substance(c *gin.Context) {
 	var substance ds.Substances
 
@@ -332,24 +389,91 @@ func (a *Application) apply_synthesis(c *gin.Context) {
 	c.String(http.StatusCreated, "Synthesis was successfully edited")
 
 }
+func (a *Application) apply_synthesis_user(c *gin.Context) {
+	var synthesis ds.Syntheses
+
+	var id = c.Param("synthesis")
+
+	if err := c.BindJSON(&synthesis); err != nil {
+		c.Error(err)
+		return
+	}
+
+	err := a.repo.ApplySynthesis(synthesis, id)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.String(http.StatusCreated, "Synthesis was successfully edited")
+
+}
 func (a *Application) order_synthesis(c *gin.Context) {
 	var request_body ds.OrderSynthesisRequestBody
-	request_body.User_id = instance1.GetUserIDAsString()
+	request_body.User_name = instance1.GetUserIDAsString()
 	if err := c.BindJSON(&request_body); err != nil {
 		c.Error(err)
 		c.String(http.StatusBadGateway, "Cant' parse json")
 		return
 	}
 
-	err := a.repo.OrderSynthesis(request_body)
+	substancesList := strings.Split(request_body.Substances, ",")
+	var intList []int
 
+	// Проходим по каждой строке в списке substancesList
+	for _, str := range substancesList {
+		// Преобразуем строку в целое число
+		num, err := strconv.Atoi(str)
+		if err != nil {
+			fmt.Println("Ошибка преобразования строки в число:", err)
+			// Обработайте ошибку по вашему усмотрению
+			continue
+		}
+
+		// Добавляем целое число в список intList
+		intList = append(intList, num)
+	}
+
+	//log.Println(ChernId)
+	//проверка есть ли черновая заявка у пользователя
+	ChernId, err := a.repo.CheckForChern(request_body.User_name)
+	//=0 когда нет черновой заявки => создаём
+	if ChernId != 0 {
+		var order ds.Synthesis_substance
+		var stage = 1
+		order.Synthesis_ID = ChernId
+		for _, substanceFirst := range intList {
+			// Создаем объект SynthesisSubstance
+			order.Substance_ID = substanceFirst
+			order.Stage = stage
+			stage++
+			// Вызываем функцию CreateSynthesisSubstance
+			err = a.repo.CreateSynthesisSubstance(order)
+			if err != nil {
+				fmt.Println("Ошибка при создании Synthesis_Substance:", err)
+				// Обработайте ошибку по вашему усмотрению
+			}
+		}
+
+	} else {
+		err = a.repo.OrderSynthesis(request_body)
+	}
 	if err != nil {
 		c.Error(err)
 		c.String(http.StatusNotFound, "Can't order synthesis")
 		return
 	}
-
-	c.String(http.StatusCreated, "Synthesis was successfully ordered")
+	//
+	err = a.repo.OrderSynthesis(request_body)
+	//
+	//if err != nil {
+	//	c.Error(err)
+	//	c.String(http.StatusNotFound, "Can't order synthesis")
+	//	return
+	//}
+	//
+	//c.String(http.StatusCreated, "Synthesis was successfully ordered")
 
 }
 func (a *Application) order_find_substances(c *gin.Context) {
@@ -388,13 +512,13 @@ func (a *Application) order_add(c *gin.Context) {
 		c.String(http.StatusBadRequest, "Can't parse order\n"+err.Error())
 		return
 	}
-
-	err := a.repo.OrderAdd(order)
-
-	if err != nil {
-		c.String(http.StatusNotFound, "Can't add substance\n"+err.Error())
-		return
-	}
+	log.Println(order.Substance_ID)
+	//err := a.repo.OrderAdd(order)
+	//
+	//if err != nil {
+	//	c.String(http.StatusNotFound, "Can't add substance\n"+err.Error())
+	//	return
+	//}
 
 	c.String(http.StatusCreated, "Add substance")
 }

@@ -7,7 +7,7 @@ type GetSubstancesRequestBody struct {
 	Status string
 }
 type OrderSynthesisRequestBody struct {
-	User_id    string
+	User_name  string
 	Substances string
 }
 type SynthesesOne struct {
@@ -23,6 +23,6 @@ type SynthesesOne struct {
 	Substances            []Substances
 }
 type ResponseData struct {
-	SynthesesChern []Syntheses
+	SynthesesChern int
 	Substances     []Substances
 }

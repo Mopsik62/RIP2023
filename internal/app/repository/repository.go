@@ -2,7 +2,9 @@ package repository
 
 import (
 	"awesomeProject1/internal/app/ds"
+	"awesomeProject1/internal/app/role"
 	"fmt"
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -26,6 +28,59 @@ func New(dsn string) (*Repository, error) {
 		db: db,
 	}, nil
 }
+func (r *Repository) GetUserByID(id uuid.UUID) (*ds.User, error) {
+	user := &ds.User{}
+
+	err := r.db.First(user, "UUID = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *Repository) GetUserNameByID(id uuid.UUID) (string, error) {
+	user := &ds.User{}
+
+	err := r.db.First(user, "UUID = ?", id).Error
+	if err != nil {
+
+		return "", err
+	}
+
+	return user.Name, nil
+}
+
+func (r *Repository) GetUserID(name string) (uuid.UUID, error) {
+	user := &ds.User{}
+
+	err := r.db.First(user, "name = ?", name).Error
+	if err != nil {
+
+		return uuid.Nil, err
+	}
+
+	return user.UUID, nil
+}
+
+func (r *Repository) GetUserRole(name string) (role.Role, error) {
+	user := &ds.User{}
+
+	err := r.db.First(user, "name = ?", name).Error
+	if err != nil {
+		return role.Undefined, err
+	}
+	return user.Role, nil
+}
+
+func (r *Repository) Register(user *ds.User) error {
+	if user.UUID == uuid.Nil {
+		user.UUID = uuid.New()
+	}
+
+	return r.db.Create(user).Error
+}
+
 func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id string) (ds.ResponseData, error) {
 	substances := []ds.Substances{}
 	responseData := ds.ResponseData{}
@@ -54,7 +109,7 @@ func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id
 	}
 	//log.Println(responseData.SynthesesIDs)
 	if title != "" {
-		tx = tx.Where("title = ?", title)
+		tx = tx.Where("title = ?", title) //зачем title если есть name_pattern? ченкуть
 	}
 
 	tx = tx.Where("status = ?", "Активно") //тут скорее всего 4-я сломается т.к. добавил статус пустой
@@ -99,7 +154,7 @@ func (r *Repository) FindSubstance(title string) (ds.Substances, error) {
 
 	return substance, nil
 }
-func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string) ([]ds.Syntheses, error) {
+func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string, roleNumber role.Role, UserName string) ([]ds.Syntheses, error) {
 	var synthesis []ds.Syntheses
 	var tx *gorm.DB = r.db
 	//log.Println(date)
@@ -114,6 +169,10 @@ func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string) 
 	//tx = tx.Where("Status NOT IN (?, ?)", "Удалён", "Черновик")
 	if status != "" {
 		tx = tx.Where("status = ?", status)
+	}
+
+	if roleNumber == role.User {
+		tx = tx.Where("user_name = ?", UserName)
 	}
 
 	err := tx.Find(&synthesis).Error
@@ -309,6 +368,18 @@ func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) er
 	return err
 
 }
+
+func (r *Repository) GetUserByLogin(login string) (*ds.User, error) {
+	user := &ds.User{}
+
+	err := r.db.First(user, "name = ?", login).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (r *Repository) FindSubstanceOrder(id string) ([]ds.Synthesis_substance, error) {
 	substances := []ds.Synthesis_substance{}
 	var tx *gorm.DB = r.db

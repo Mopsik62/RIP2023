@@ -25,11 +25,11 @@ type Syntheses struct {
 	Name                  string
 	Additional_conditions string
 	Status                string         `gorm:"not null"`
-	Date_created          datatypes.Date `gorm:"not null"`
-	Date_processed        datatypes.Date
-	Date_finished         datatypes.Date
-	Moderator             string `gorm:"not null"`
-	User_name             string `gorm:"not null"`
+	Date_created          datatypes.Date `gorm:"not null" swaggertype:"primitive,string"`
+	Date_processed        datatypes.Date `swaggertype:"primitive,string"`
+	Date_finished         datatypes.Date `swaggertype:"primitive,string"`
+	Moderator             string         `gorm:"not null"`
+	User_name             string         `gorm:"not null"`
 	//Moderator            Users `gorm:"foreignKey:ModeratorID"`
 	//User                 Users `gorm:"foreignKey:UserID;not null"`
 }

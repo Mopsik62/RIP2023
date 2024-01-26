@@ -1,0 +1,784 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "basePath": "/",
+    "paths": {
+        "/login": {
+            "post": {
+                "description": "Returns your token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login into system",
+                "parameters": [
+                    {
+                        "description": "Login request body",
+                        "name": "request_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app.loginReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app.loginResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Аутентификация"
+                ],
+                "summary": "Выйти из системы",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/ping/{name}": {
+            "get": {
+                "description": "very very friendly response",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tests"
+                ],
+                "summary": "Show hello text",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app.pingResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "adds a new user to the database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "register a new user",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app.registerReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app.registerResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/substances": {
+            "get": {
+                "description": "Returns all existing substances",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "substances"
+                ],
+                "summary": "Get all existing substances",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Substances name pattern",
+                        "name": "name_pattern",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Substances title",
+                        "name": "title",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/substances/add": {
+            "post": {
+                "description": "Creates a new substance with parameters, specified in json",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "substances"
+                ],
+                "summary": "Adds substance to database",
+                "parameters": [
+                    {
+                        "description": "New substance's details",
+                        "name": "substance",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Substances"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Substance created successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/substances/{substance}": {
+            "get": {
+                "description": "Returns substance with given name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "substances"
+                ],
+                "summary": "Get substance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Substances name",
+                        "name": "substance",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/substances/{substance}/add_image": {
+            "post": {
+                "description": "Adds image to substance + minio server",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "substances"
+                ],
+                "summary": "Adds image",
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/substances/{substance}/delete": {
+            "delete": {
+                "description": "Finds substance by name and changes its status to \"Удалён\"",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "substances"
+                ],
+                "summary": "Deletes substance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Substances name",
+                        "name": "substance_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/substances/{substance}/edit": {
+            "put": {
+                "description": "Finds substance by name and updates its fields",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "substances"
+                ],
+                "summary": "Edits substance",
+                "parameters": [
+                    {
+                        "description": "Edited substance",
+                        "name": "substance",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Substances"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Substance name",
+                        "name": "title",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses": {
+            "get": {
+                "description": "Returns list of all syntheses",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Get syntheses",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Substances oldest date",
+                        "name": "date1",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Substances newest date",
+                        "name": "date2",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Substances status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/generate": {
+            "put": {
+                "description": "Creates a new/ find existing synthesis and adds current substances in it",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Order synthesis",
+                "parameters": [
+                    {
+                        "description": "Ordering request parameters",
+                        "name": "request_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.OrderSynthesisRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}": {
+            "get": {
+                "description": "Returns synthesis with given id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Get synthesis",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Substances name",
+                        "name": "synthesis",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}/apply": {
+            "put": {
+                "description": "Changes synthesis status to any available status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Changes synthesis status as moderator",
+                "parameters": [
+                    {
+                        "description": "Syntheses body",
+                        "name": "synthesis_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Syntheses"
+                        }
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Synthesis id",
+                        "name": "synthesis",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}/apply_user": {
+            "put": {
+                "description": "Changes synthesis status as allowed to user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Changes synthesis status as user",
+                "parameters": [
+                    {
+                        "description": "Syntheses body",
+                        "name": "synthesis_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Syntheses"
+                        }
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Synthesis id",
+                        "name": "synthesis",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}/delete": {
+            "delete": {
+                "description": "Changes synthesis status to \"Удалён\"",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Deletes synthesis",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Synthesis id",
+                        "name": "synthesis_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}/edit": {
+            "put": {
+                "description": "Finds synthesis and updates it fields",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "syntheses"
+                ],
+                "summary": "Edits synthesis",
+                "parameters": [
+                    {
+                        "description": "Edited substance",
+                        "name": "synthesis_body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Syntheses"
+                        }
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Substance name",
+                        "name": "synthesis",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/synthesis_substance/{id1}/{id2}": {
+            "delete": {
+                "description": "Finds Synthesis_Substance by ids and remove it",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "synthesis_substance"
+                ],
+                "summary": "Deletes Synthesis_Substance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Synthesis id",
+                        "name": "id1",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Substance id",
+                        "name": "id2",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/synthesis_substance/{id1}/{id2}/edit": {
+            "put": {
+                "description": "Finds Synthesis_Substance by ids and edits it",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "synthesis_substance"
+                ],
+                "summary": "Edits Synthesis_Substance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Synthesis id",
+                        "name": "id1",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Substance id",
+                        "name": "id2",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Parameters for ss",
+                        "name": "ss",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Synthesis_substance"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "app.loginReq": {
+            "type": "object",
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "app.loginResp": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer"
+                },
+                "token_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "app.pingResp": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "app.registerReq": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "лучше назвать то же самое что login",
+                    "type": "string"
+                },
+                "pass": {
+                    "type": "string"
+                }
+            }
+        },
+        "app.registerResp": {
+            "type": "object",
+            "properties": {
+                "ok": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "ds.OrderSynthesisRequestBody": {
+            "type": "object",
+            "properties": {
+                "substances": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.Substances": {
+            "type": "object",
+            "properties": {
+                "ID": {
+                    "type": "integer"
+                },
+                "class": {
+                    "type": "string"
+                },
+                "formula": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.Syntheses": {
+            "type": "object",
+            "properties": {
+                "additional_conditions": {
+                    "type": "string"
+                },
+                "date_created": {
+                    "type": "string"
+                },
+                "date_finished": {
+                    "type": "string"
+                },
+                "date_processed": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "moderator": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.Synthesis_substance": {
+            "type": "object",
+            "properties": {
+                "result": {
+                    "type": "string"
+                },
+                "stage": {
+                    "type": "integer"
+                },
+                "substance_ID": {
+                    "type": "integer"
+                },
+                "synthesis_ID": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

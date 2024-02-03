@@ -6,10 +6,23 @@ type GetSubstancesRequestBody struct {
 	Name   string
 	Status string
 }
-type OrderSynthesisRequestBody struct {
-	User_name  string
-	Substances string
+
+type ModConfirm struct {
+	Confirm string
 }
+
+type OrderSynthesisRequestBody struct {
+	User_name             string
+	Substances            string `json:"substances"`
+	Additional_conditions string
+	Status                string
+}
+
+type SetSynthesisSubstancesRequestBody struct {
+	SynthesisID int
+	Substances  string
+}
+
 type SynthesesOne struct {
 	ID                    int `gorm:"primarykey;AUTO_INCREMENT"`
 	Name                  string

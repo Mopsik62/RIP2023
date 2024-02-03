@@ -20,7 +20,6 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"gorm.io/datatypes"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -45,6 +44,8 @@ type loginReq struct {
 }
 
 type loginResp struct {
+	Login       string `json:"login"`
+	Role        string `json:"role"`
 	ExpiresIn   int    `json:"expires_in"`
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
@@ -101,8 +102,8 @@ func (a *Application) StartServer() {
 	log.Println("Server start up1")
 	//#Услуги - GET список(1), GET одна запись(2), POST добавление(3), PUT изменение(4),
 	//DELETE удаление(5), POST добавление в заявку (6)(объединил с сформированием заявки(synthesis(4))
-	a.r.GET("substances", a.get_substances)           //(1)
-	a.r.GET("substances/:substance", a.get_substance) //(2)
+	//	a.r.GET("substances", a.get_substances)           //(1)
+	//a.r.GET("substances/:substance", a.get_substance) //(2)
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("substances/add", a.add_substance) //(3)
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("substances/:substance/edit", a.edit_substance)        //(4)
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("substances/:substance/delete", a.delete_substance) //(5)
@@ -134,17 +135,25 @@ func (a *Application) StartServer() {
 	// registration & etc
 	a.r.POST("/login", a.login)
 	a.r.POST("/register", a.register)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User, role.Undefined)).GET("substances", a.get_substances)           //(1)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User, role.Undefined)).GET("substances/:substance", a.get_substance) //(2)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).POST("/logout", a.logout)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses", a.get_syntheses)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses/:synthesis", a.get_synthesis)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/generate", a.order_synthesis)
-	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user) //(5)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/set_substances", a.set_synthesis_substances)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user)  //(5)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/edit_user", a.edit_synthesis_by_user) //(3)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss)            //(2)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).DELETE("syntheses/:synthesis/delete", a.delete_synthesis) //(6)
+
 	//(4)
 
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("substances/:substance/edit", a.edit_substance)        //(4)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("substances/:substance/delete", a.delete_substance) //(5)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).POST("substances/:substance/add_image", a.add_image)
-	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("substances/add", a.add_substance)
+	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).POST("substances/add", a.add_substance)
 
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses", a.get_syntheses)
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses/:synthesis", a.get_synthesis)                   //(2)
@@ -152,10 +161,9 @@ func (a *Application) StartServer() {
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/generate", a.order_synthesis)                   //(4)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("syntheses/:synthesis/apply", a.apply_synthesis) //(5)
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user) //(5)
-	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("syntheses/:synthesis/delete", a.delete_synthesis) //(6)
 
-	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss) //(1)
-	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss) //(2)
+	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss) //(1)
+	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss) //(2)
 
 	a.r.Use(a.WithAuthCheck(role.Admin)).GET("/ping", a.Ping)
 
@@ -177,6 +185,10 @@ func (a *Application) get_substances(c *gin.Context) {
 	var name_pattern = c.Query("name_pattern")
 	var title = c.Query("title")
 	//	var status = c.Query("status")
+	//_userUUID, _ := c.Get("userUUID")
+	//userUUID := _userUUID.(uuid.UUID)
+	//
+	//UserName, err := a.repo.GetUserNameByID(userUUID)
 	var user_id = instance1.GetUserIDAsString()
 
 	response, err := a.repo.GetAllSubstances(title, name_pattern, user_id)
@@ -221,13 +233,17 @@ func (a *Application) get_syntheses(c *gin.Context) {
 	//var status = c.Query("status")
 
 	_roleNumber, _ := c.Get("role")
-	_userUUID, _ := c.Get("userUUID")
+	//_userUUID, _ := c.Get("userUUID")
 
 	roleNumber := _roleNumber.(role.Role)
 
+	_userUUID, _ := c.Get("userUUID")
 	userUUID := _userUUID.(uuid.UUID)
 
 	UserName, err := a.repo.GetUserNameByID(userUUID)
+
+	log.Println("userName= " + UserName)
+	log.Println("userrole= " + roleNumber)
 
 	var date1 = c.Query("date1")
 	var date2 = c.Query("date2")
@@ -239,7 +255,7 @@ func (a *Application) get_syntheses(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusFound, found_synthesis)
+	c.JSON(http.StatusOK, found_synthesis)
 
 }
 
@@ -259,7 +275,7 @@ func (a *Application) get_synthesis(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusFound, found_synthesis)
+	c.JSON(http.StatusOK, found_synthesis)
 
 }
 
@@ -334,7 +350,7 @@ func (a *Application) add_substance(c *gin.Context) {
 		c.String(http.StatusBadRequest, "Can't parse substance\n"+err.Error())
 		return
 	}
-
+	log.Println(substance.Title)
 	if substance.Image == "" {
 		substance.Image = "http://127.0.0.1:9000/substances/default.jpg"
 	}
@@ -365,7 +381,7 @@ func (a *Application) delete_synthesis(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusFound, "Synthesis was successfully deleted")
+	c.String(http.StatusOK, "Synthesis was successfully deleted")
 }
 
 // @Summary      Deletes substance
@@ -396,7 +412,7 @@ func (a *Application) delete_substance(c *gin.Context) {
 // @Success      201  {object}  string
 // @Param id1 path int true "Synthesis id"
 // @Param id2 path int true "Substance id"
-// @Router       /synthesis_substance/{id1}/{id2} [delete]
+// @Router       /synthesis_substance/{id1}/{id2} [put]
 func (a *Application) delete_ss(c *gin.Context) {
 	id1, _ := strconv.Atoi(c.Param("id1"))
 	id2, _ := strconv.Atoi(c.Param("id2"))
@@ -407,7 +423,7 @@ func (a *Application) delete_ss(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusFound, "SynthesisSubstance was successfully deleted")
+	c.String(http.StatusCreated, "SynthesisSubstance was successfully deleted")
 }
 
 // @Summary      Edits Synthesis_Substance
@@ -456,7 +472,7 @@ func (a *Application) edit_substance(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-
+	log.Println(substance)
 	err := a.repo.EditSubstance(substance, title)
 
 	if err != nil {
@@ -498,6 +514,62 @@ func (a *Application) edit_synthesis(c *gin.Context) {
 
 }
 
+// @Summary      Edits synthesis by user
+// @Description  Finds synthesis and updates it fields
+// @Tags         syntheses
+// @Accept json
+// @Produce      json
+// @Success      302  {object}  string
+// @Param synthesis_body body ds.Syntheses true "Edited substance"
+// @Param synthesis query int false "Substance name"
+// @Router       /syntheses/{synthesis}/edit_user [put]
+func (a *Application) edit_synthesis_by_user(c *gin.Context) {
+	var synthesis_body ds.Syntheses
+
+	var synthesis = c.Param("synthesis")
+
+	if err := c.BindJSON(&synthesis_body); err != nil {
+		c.Error(err)
+		return
+	}
+
+	err := a.repo.EditSynthesis(synthesis_body, synthesis)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.String(http.StatusOK, "Synthesis was successfully edited")
+
+}
+
+func (a *Application) set_synthesis_substances(c *gin.Context) {
+	var id = c.Param("synthesis")
+	var requestBody ds.SetSynthesisSubstancesRequestBody
+
+	idInt, err := strconv.Atoi(id)
+
+	if err != nil {
+		fmt.Println("Ошибка преобразования:", err)
+		return
+	}
+
+	if err := c.BindJSON(&requestBody); err != nil {
+		c.String(http.StatusBadRequest, "Не получается распознать json запрос")
+		return
+	}
+	requestBody.SynthesisID = idInt
+
+	err = a.repo.SetSynthesisSubstances(requestBody.SynthesisID, requestBody.Substances)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Не получилось задать субстанции для заявки\n"+err.Error())
+	}
+
+	c.String(http.StatusCreated, "Субстанции заявки успешно заданы!")
+
+}
+
 // @Summary      Changes synthesis status as moderator
 // @Description  Changes synthesis status to any available status
 // @Tags         syntheses
@@ -508,33 +580,46 @@ func (a *Application) edit_synthesis(c *gin.Context) {
 // @Param synthesis path int true "Synthesis id"
 // @Router       /syntheses/{synthesis}/apply [put]
 func (a *Application) apply_synthesis(c *gin.Context) {
-	var synthesis_body ds.Syntheses
-
+	//var synthesis_body ds.Syntheses
+	var confirm ds.ModConfirm
 	var synthesis = c.Param("synthesis")
 
-	if err := c.BindJSON(&synthesis_body); err != nil {
+	if err := c.BindJSON(&confirm); err != nil {
 		c.Error(err)
 		return
 	}
+	log.Println(confirm.Confirm)
+	//switch synthesis_body.Status {
+	//case "В работе":
+	//	synthesis_body.Date_processed = datatypes.Date(time.Now())
+	//case "Отклонена":
+	//	synthesis_body.Date_processed = datatypes.Date(time.Now())
+	//	synthesis_body.Date_finished = datatypes.Date(time.Now())
+	//case "Завершена":
+	//	synthesis_body.Date_finished = datatypes.Date(time.Now())
+	//}
+	if confirm.Confirm == "True" {
+		err := a.repo.ApplySynthesis(synthesis)
+		if err != nil {
+			c.Error(err)
+			return
+		}
 
-	switch synthesis_body.Status {
-	case "В работе":
-		synthesis_body.Date_processed = datatypes.Date(time.Now())
-	case "Отклонена":
-		synthesis_body.Date_processed = datatypes.Date(time.Now())
-		synthesis_body.Date_finished = datatypes.Date(time.Now())
-	case "Завершена":
-		synthesis_body.Date_finished = datatypes.Date(time.Now())
+	} else if confirm.Confirm == "False" {
+		err := a.repo.DenySynthesis(synthesis)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+	} else if confirm.Confirm == "End" {
+		err := a.repo.EndSynthesis(synthesis)
+		if err != nil {
+			c.Error(err)
+			return
+		}
 	}
 
-	err := a.repo.ApplySynthesis(synthesis_body, synthesis)
-
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	c.String(http.StatusCreated, "Synthesis was successfully edited")
+	c.String(http.StatusOK, "Synthesis was successfully edited")
 
 }
 
@@ -544,20 +629,14 @@ func (a *Application) apply_synthesis(c *gin.Context) {
 // @Accept json
 // @Produce      json
 // @Success      201  {object}  string
-// @Param synthesis_body body ds.Syntheses true "Syntheses body"
 // @Param synthesis path int true "Synthesis id"
 // @Router       /syntheses/{synthesis}/apply_user [put]
 func (a *Application) apply_synthesis_user(c *gin.Context) {
-	var synthesis_body ds.Syntheses
+	//var synthesis_body ds.Syntheses
 
 	var synthesis = c.Param("synthesis")
 
-	if err := c.BindJSON(&synthesis_body); err != nil {
-		c.Error(err)
-		return
-	}
-
-	err := a.repo.ApplySynthesis(synthesis_body, synthesis)
+	err := a.repo.ApplySynthesis(synthesis)
 
 	if err != nil {
 		c.Error(err)
@@ -580,7 +659,7 @@ func (a *Application) order_synthesis(c *gin.Context) {
 	var request_body ds.OrderSynthesisRequestBody
 
 	_userUUID, ok := c.Get("userUUID")
-
+	log.Println("1")
 	if !ok {
 		c.String(http.StatusInternalServerError, "You should login first")
 
@@ -590,50 +669,55 @@ func (a *Application) order_synthesis(c *gin.Context) {
 	userUUID := _userUUID.(uuid.UUID)
 	UserName, err := a.repo.GetUserNameByID(userUUID)
 	request_body.User_name = UserName
-	if err := c.BindJSON(&request_body); err != nil {
+	if err = c.BindJSON(&request_body); err != nil {
 		c.Error(err)
 		c.String(http.StatusBadGateway, "Cant' parse json")
 		return
 	}
+	log.Println("request_body.Substances")
+	log.Println(request_body.Substances)
 
 	substancesList := strings.Split(request_body.Substances, ",")
+
 	var intList []int
 
-	// Проходим по каждой строке в списке substancesList
-	for _, str := range substancesList {
-		// Преобразуем строку в целое число
-		num, err := strconv.Atoi(str)
+	for _, substance := range substancesList {
+		// Вызываем функцию GetSubstanceIDByName для каждой субстанции
+		substanceID, err := a.repo.GetSubstanceIDByName(substance)
 		if err != nil {
-			fmt.Println("Ошибка преобразования строки в число:", err)
-			// Обработайте ошибку по вашему усмотрению
 			continue
 		}
-
-		// Добавляем целое число в список intList
-		intList = append(intList, num)
+		// Добавляем полученный идентификатор в intList
+		log.Println(substanceID)
+		intList = append(intList, substanceID)
 	}
 
 	//log.Println(ChernId)
-	//проверка есть ли черновая заявка у пользователя
-	ChernId, err := a.repo.CheckForChern(request_body.User_name)
-	//=0 когда нет черновой заявки => создаём
-	if ChernId != 0 {
-		var order ds.Synthesis_substance
-		var stage = 1
-		order.Synthesis_ID = ChernId
-		for _, substanceFirst := range intList {
-			// Создаем объект SynthesisSubstance
-			order.Substance_ID = substanceFirst
-			order.Stage = stage
-			stage++
-			// Вызываем функцию CreateSynthesisSubstance
-			err = a.repo.CreateSynthesisSubstance(order)
-			if err != nil {
-				fmt.Println("Ошибка при создании Synthesis_Substance:", err)
-				// Обработайте ошибку по вашему усмотрению
+	if request_body.Status == "Черновик" {
+		//проверка есть ли черновая заявка у пользователя
+		ChernId, err := a.repo.CheckForChern(request_body.User_name)
+		//=0 когда нет черновой заявки => создаём
+		if ChernId != 0 {
+			var order ds.Synthesis_substance
+			var stage = 1
+			order.Synthesis_ID = ChernId
+			for _, substanceFirst := range intList {
+				// Создаем объект SynthesisSubstance
+				order.Substance_ID = substanceFirst
+				order.Stage = stage
+				stage++
+				// Вызываем функцию CreateSynthesisSubstance
+				err = a.repo.CreateSynthesisSubstance(order)
+				if err != nil {
+					fmt.Println("Ошибка при создании Synthesis_Substance:", err)
+					// Обработайте ошибку по вашему усмотрению
+				}
 			}
-		}
 
+		} else {
+			err = a.repo.OrderSynthesis(request_body)
+
+		}
 	} else {
 		err = a.repo.OrderSynthesis(request_body)
 	}
@@ -643,7 +727,7 @@ func (a *Application) order_synthesis(c *gin.Context) {
 		return
 	}
 	//
-	err = a.repo.OrderSynthesis(request_body)
+	//err = a.repo.OrderSynthesis(request_body)
 	//
 	if err != nil {
 		c.Error(err)
@@ -731,8 +815,10 @@ func (a *Application) login(c *gin.Context) {
 		}
 
 		c.SetCookie("One-pot-api-token", "Bearer "+strToken, 3600000000000, "", "", true, true)
-
+		log.Println("role= " + user.Role)
 		c.JSON(http.StatusOK, loginResp{
+			Login:       user.Name,
+			Role:        string(user.Role),
 			ExpiresIn:   3600000000000,
 			AccessToken: strToken,
 			TokenType:   "Bearer",
@@ -743,8 +829,8 @@ func (a *Application) login(c *gin.Context) {
 }
 
 type registerReq struct {
-	Name string `json:"name"` // лучше назвать то же самое что login
-	Pass string `json:"pass"`
+	Login    string `json:"login"` // лучше назвать то же самое что login
+	Password string `json:"password"`
 }
 
 type registerResp struct {
@@ -766,19 +852,19 @@ func (a *Application) register(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	if req.Pass == "" {
+	if req.Password == "" {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("Password should not be empty"))
 		return
 	}
-	if req.Name == "" {
+	if req.Login == "" {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("Name should not be empty"))
 	}
 
 	err = a.repo.Register(&ds.User{
 		UUID: uuid.New(),
-		Role: role.Undefined,
-		Name: req.Name,
-		Pass: generateHashString(req.Pass),
+		Role: role.User,
+		Name: req.Login,
+		Pass: req.Password,
 	})
 
 	if err != nil {

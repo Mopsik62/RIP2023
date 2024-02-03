@@ -9,7 +9,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -37,6 +36,17 @@ func (r *Repository) GetUserByID(id uuid.UUID) (*ds.User, error) {
 	}
 
 	return user, nil
+}
+
+func (r *Repository) GetSubstanceIDByName(name string) (int, error) {
+	substance := &ds.Substances{}
+
+	err := r.db.First(substance, "Title = ?", name).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return substance.ID, nil
 }
 
 func (r *Repository) GetUserNameByID(id uuid.UUID) (string, error) {
@@ -155,7 +165,8 @@ func (r *Repository) FindSubstance(title string) (ds.Substances, error) {
 	return substance, nil
 }
 func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string, roleNumber role.Role, UserName string) ([]ds.Syntheses, error) {
-	var synthesis []ds.Syntheses
+	synthesis := []ds.Syntheses{}
+
 	var tx *gorm.DB = r.db
 	//log.Println(date)
 	if date1 != "" {
@@ -165,7 +176,9 @@ func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string, 
 	if date2 != "" {
 		tx = tx.Where("date_created <= ?", date2)
 	}
-	tx = tx.Where("status NOT IN (?, ?)", "Удалён", "Черновик") //тут скорее всего 4-я сломается т.к. добавил статус пустой
+	if roleNumber != role.User {
+		tx = tx.Where("status NOT IN (?, ?)", "Удалён", "Черновик") //тут скорее всего 4-я сломается т.к. добавил статус пустой
+	}
 	//tx = tx.Where("Status NOT IN (?, ?)", "Удалён", "Черновик")
 	if status != "" {
 		tx = tx.Where("status = ?", status)
@@ -295,9 +308,17 @@ func (r *Repository) EditSynthesis(synthesis ds.Syntheses, id string) error {
 func (r *Repository) GenerateSynthesis(synthesis ds.Syntheses, id string) error {
 	return r.db.Model(&ds.Syntheses{}).Where("id = ? AND status = ?", id, "Черновик").Updates(synthesis).Error
 }
-func (r *Repository) ApplySynthesis(synthesis ds.Syntheses, id string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(synthesis).Error
+func (r *Repository) ApplySynthesis(id string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "В работе", "date_processed": datatypes.Date(time.Now())}).Error
 }
+func (r *Repository) DenySynthesis(id string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Отклонён", "date_processed": datatypes.Date(time.Now()), "date_finished": datatypes.Date(time.Now())}).Error
+}
+
+func (r *Repository) EndSynthesis(id string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Завершён", "date_finished": datatypes.Date(time.Now())}).Error
+}
+
 func (r *Repository) CreateSynthesisSubstance(synthesis_substance ds.Synthesis_substance) error {
 	return r.db.Create(&synthesis_substance).Error
 }
@@ -305,7 +326,7 @@ func (r *Repository) SetSubstanceImage(id int, image string) error {
 	return r.db.Model(&ds.Substances{}).Where("id = ?", id).Update("image", image).Error
 }
 func (r *Repository) LogicalDeleteSubstance(substance_name string) error {
-	return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Updates(map[string]interface{}{"status": "Удалён", "additional_conditions": "dads", "date_finished": datatypes.Date(time.Now())}).Error
+	return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Updates(map[string]interface{}{"status": "Удалён", "additional_conditions": "", "date_finished": datatypes.Date(time.Now())}).Error
 }
 func (r *Repository) DeleteSS(id1 int, id2 int) error {
 	return r.db.Model(&ds.Synthesis_substance{}).Where("synthesis_id = ? AND substance_id = ?", id1, id2).Delete(&ds.Synthesis_substance{}).Error
@@ -320,24 +341,22 @@ func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) er
 
 	var intList []int
 
-	// Проходим по каждой строке в списке substancesList
-	for _, str := range substancesList {
-		// Преобразуем строку в целое число
-		num, err := strconv.Atoi(str)
+	for _, substance := range substancesList {
+		// Вызываем функцию GetSubstanceIDByName для каждой субстанции
+		substanceID, err := r.GetSubstanceIDByName(substance)
 		if err != nil {
-			fmt.Println("Ошибка преобразования строки в число:", err)
-			// Обработайте ошибку по вашему усмотрению
 			continue
 		}
-
-		// Добавляем целое число в список intList
-		intList = append(intList, num)
+		// Добавляем полученный идентификатор в intList
+		log.Println(substanceID)
+		intList = append(intList, substanceID)
 	}
 
 	current_date := datatypes.Date(time.Now())
 
 	synthesis := ds.Syntheses{}
-	synthesis.Status = "Черновик"
+	synthesis.Status = requestBody.Status
+	synthesis.Additional_conditions = requestBody.Additional_conditions
 	synthesis.Name = "test"
 	synthesis.User_name = user_id
 	synthesis.Date_created = current_date
@@ -350,7 +369,9 @@ func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) er
 	}
 
 	synthesis_substance := ds.Synthesis_substance{}
+
 	synthesis_substance.Synthesis_ID = synthesis.ID
+
 	var stage = 1
 	// Проходим по каждому числу в списке
 	for _, substanceFirst := range intList {
@@ -376,7 +397,8 @@ func (r *Repository) GetUserByLogin(login string) (*ds.User, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	log.Println("User= ")
+	log.Println(user)
 	return user, nil
 }
 
@@ -399,4 +421,56 @@ func (r *Repository) CreateUser(user ds.Users) error {
 }
 func (r *Repository) OrderAdd(substance ds.Synthesis_substance) error {
 	return r.db.Create(&substance).Error
+}
+
+func (r *Repository) SetSynthesisSubstances(synthesisID int, substances string) error {
+
+	substancesList := strings.Split(substances, ",")
+	var intList []int
+
+	for _, substance := range substancesList {
+		// Вызываем функцию GetSubstanceIDByName для каждой субстанции
+		substanceID, err := r.GetSubstanceIDByName(substance)
+		if err != nil {
+			continue
+		}
+		// Добавляем полученный идентификатор в intList
+		log.Println(substanceID)
+		intList = append(intList, substanceID)
+	}
+
+	synthesis_substance := ds.Synthesis_substance{}
+
+	synthesis_substance.Synthesis_ID = synthesisID
+
+	ids := []ds.Synthesis_substance{}
+
+	var substanceIDs []int
+	var tx *gorm.DB = r.db
+	tx = tx.Where("synthesis_id = ?", synthesisID)
+	err := tx.Find(&ids).Error
+	for _, synthesisSubstance := range ids {
+		substanceID := synthesisSubstance.Substance_ID
+		substanceIDs = append(substanceIDs, substanceID)
+	}
+	for _, substanceID := range substanceIDs {
+		r.DeleteSS(synthesisID, substanceID)
+	}
+
+	var stage = 1
+	// Проходим по каждому числу в списке
+	for _, substanceFirst := range intList {
+		// Создаем объект SynthesisSubstance
+		synthesis_substance.Substance_ID = substanceFirst
+		synthesis_substance.Stage = stage
+		stage++
+		// Вызываем функцию CreateSynthesisSubstance
+		err = r.CreateSynthesisSubstance(synthesis_substance)
+		if err != nil {
+			fmt.Println("Ошибка при создании Synthesis_Substance:", err)
+			// Обработайте ошибку по вашему усмотрению
+		}
+	}
+
+	return nil
 }

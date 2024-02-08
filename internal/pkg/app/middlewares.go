@@ -19,6 +19,7 @@ func (a *Application) WithAuthCheck(assignedRoles ...role.Role) func(context *gi
 		isPassing := false
 		for _, element := range assignedRoles {
 			if element == role.Undefined {
+				log.Println("isPassing = True")
 				isPassing = true
 				break
 			}

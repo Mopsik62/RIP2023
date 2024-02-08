@@ -1,6 +1,8 @@
 package ds
 
-import "gorm.io/datatypes"
+import (
+	"gorm.io/datatypes"
+)
 
 type GetSubstancesRequestBody struct {
 	Name   string
@@ -33,6 +35,7 @@ type SynthesesOne struct {
 	Date_finished         datatypes.Date
 	Moderator             string
 	User_name             string
+	Time                  string
 	Substances            []Substances
 }
 type ResponseData struct {

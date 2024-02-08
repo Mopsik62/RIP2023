@@ -91,7 +91,7 @@ func (r *Repository) Register(user *ds.User) error {
 	return r.db.Create(user).Error
 }
 
-func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id string) (ds.ResponseData, error) {
+func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id string, status string) (ds.ResponseData, error) {
 	substances := []ds.Substances{}
 	responseData := ds.ResponseData{}
 	var tx *gorm.DB = r.db
@@ -121,8 +121,9 @@ func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id
 	if title != "" {
 		tx = tx.Where("title = ?", title) //зачем title если есть name_pattern? ченкуть
 	}
-
-	tx = tx.Where("status = ?", "Активно") //тут скорее всего 4-я сломается т.к. добавил статус пустой
+	if status != "All" {
+		tx = tx.Where("status = ?", "Активно")
+	} //тут скорее всего 4-я сломается т.к. добавил статус пустой
 
 	err = tx.Find(&substances).Error
 	responseData.Substances = substances
@@ -164,7 +165,7 @@ func (r *Repository) FindSubstance(title string) (ds.Substances, error) {
 
 	return substance, nil
 }
-func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string, roleNumber role.Role, UserName string) ([]ds.Syntheses, error) {
+func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string, roleNumber role.Role, UserName string, creator string) ([]ds.Syntheses, error) {
 	synthesis := []ds.Syntheses{}
 
 	var tx *gorm.DB = r.db
@@ -183,7 +184,9 @@ func (r *Repository) GetAllSynthesis(date1 string, date2 string, status string, 
 	if status != "" {
 		tx = tx.Where("status = ?", status)
 	}
-
+	if creator != "" {
+		tx = tx.Where("user_name=?", creator)
+	}
 	if roleNumber == role.User {
 		tx = tx.Where("user_name = ?", UserName)
 	}
@@ -243,6 +246,7 @@ func (r *Repository) FindSynthesis(id string) (ds.SynthesesOne, error) {
 	Answer.Date_finished = synthesis.Date_finished
 	Answer.Moderator = synthesis.Moderator
 	Answer.Additional_conditions = synthesis.Additional_conditions
+	Answer.Time = synthesis.Time
 	Answer.Substances = substances
 	return Answer, nil
 }
@@ -302,21 +306,21 @@ func (r *Repository) EditSubstance(substance ds.Substances, title string) error 
 	return r.db.Model(&ds.Substances{}).Where("title = ?", title).Updates(substance).Error
 }
 func (r *Repository) EditSynthesis(synthesis ds.Syntheses, id string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(synthesis).Error
+	return r.db.Model(&ds.Syntheses{}).Where("id= ?", id).Updates(synthesis).Error
 }
 
 func (r *Repository) GenerateSynthesis(synthesis ds.Syntheses, id string) error {
 	return r.db.Model(&ds.Syntheses{}).Where("id = ? AND status = ?", id, "Черновик").Updates(synthesis).Error
 }
-func (r *Repository) ApplySynthesis(id string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "В работе", "date_processed": datatypes.Date(time.Now())}).Error
+func (r *Repository) ApplySynthesis(id string, userName string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "В работе", "date_processed": datatypes.Date(time.Now()), "moderator": userName}).Error
 }
-func (r *Repository) DenySynthesis(id string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Отклонён", "date_processed": datatypes.Date(time.Now()), "date_finished": datatypes.Date(time.Now())}).Error
+func (r *Repository) DenySynthesis(id string, userName string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Отклонён", "date_finished": datatypes.Date(time.Now()), "moderator": userName}).Error
 }
 
-func (r *Repository) EndSynthesis(id string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Завершён", "date_finished": datatypes.Date(time.Now())}).Error
+func (r *Repository) EndSynthesis(id string, userName string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Завершён", "date_finished": datatypes.Date(time.Now()), "moderator": userName}).Error
 }
 
 func (r *Repository) CreateSynthesisSubstance(synthesis_substance ds.Synthesis_substance) error {
@@ -357,7 +361,7 @@ func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) er
 	synthesis := ds.Syntheses{}
 	synthesis.Status = requestBody.Status
 	synthesis.Additional_conditions = requestBody.Additional_conditions
-	synthesis.Name = "test"
+	synthesis.Name = ""
 	synthesis.User_name = user_id
 	synthesis.Date_created = current_date
 	//synthesis.Date_processed = nil

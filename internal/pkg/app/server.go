@@ -168,25 +168,23 @@ func (a *Application) StartServer() {
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss) //(1)
 	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss) //(2)
 
-	a.r.Use(a.WithAuthCheck(role.Admin)).GET("/ping", a.Ping)
-
 	a.r.Run(":8000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 	log.Println("Server down")
 }
 
-// @Summary Get all existing substances
-// @Description Returns all existing substances
-// @Tags substances
+// @Summary Список субстанций
+// @Description Вовзращает все субстанции
+// @Tags Субстанции
 // @Accept json
 // @Produce json
 // @Success 200 {} json
-// @Param name_pattern query string false "Substances name pattern"
-// @Param title query string false "Substances title"
+// @Param name_pattern query string false "Имя субстанции"
+// @Param status query string false "Статус субстанции"
 // @Router /substances [get]
 func (a *Application) get_substances(c *gin.Context) {
 	var name_pattern = c.Query("name_pattern")
-	var title = c.Query("title")
+
 	var status = c.Query("status")
 	//_roleNumber, _ := c.Get("role")
 
@@ -205,11 +203,10 @@ func (a *Application) get_substances(c *gin.Context) {
 	}
 	//log.Println(userUUID)
 
-	////
 	UserName, err := a.repo.GetUserNameByID(userUUID)
 	//var UserName = instance1.GetUserIDAsString()
 
-	response, err := a.repo.GetAllSubstances(title, name_pattern, UserName, status)
+	response, err := a.repo.GetAllSubstances(name_pattern, UserName, status)
 	if err != nil {
 		c.Error(err)
 		return
@@ -218,13 +215,13 @@ func (a *Application) get_substances(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// @Summary      Get substance
-// @Description  Returns substance with given name
-// @Tags         substances
-// @Produce      json
-// @Param substance path string true "Substances name"
-// @Success      200  {object}  string
-// @Router       /substances/{substance} [get]
+// @Summary Одна субстанция
+// @Description Возвращает одну субстанцию по имени
+// @Tags Субстанции
+// @Produce json
+// @Param substance path string true "Имя субстанции"
+// @Success 200 {object} string "Субстанция"
+// @Router /substances/{substance} [get]
 func (a *Application) get_substance(c *gin.Context) {
 	var title = c.Param("substance")
 
@@ -238,15 +235,16 @@ func (a *Application) get_substance(c *gin.Context) {
 
 }
 
-// @Summary      Get syntheses
-// @Description  Returns list of all syntheses
-// @Tags         syntheses
-// @Produce      json
+// @Summary Список синтезов
+// @Description Получает все синтезы
+// @Tags Синтезы
+// @Produce json
 // @Success 200 {} json
-// @Param date1 query string false "Substances oldest date"
-// @Param date2 query string false "Substances newest date"
-// @Param status query string false "Substances status"
-// @Router       /syntheses [get]
+// @Param date1 query string false "Первая дата"
+// @Param date2 query string false "Вторая дата"
+// @Param status query string false "Статус"
+// @Param creator query string false "Создатель"
+// @Router /syntheses [get]
 func (a *Application) get_syntheses(c *gin.Context) {
 	//var status = c.Query("status")
 
@@ -278,13 +276,13 @@ func (a *Application) get_syntheses(c *gin.Context) {
 
 }
 
-// @Summary      Get synthesis
-// @Description  Returns synthesis with given id
-// @Tags         syntheses
-// @Produce      json
-// @Success      302 {object}  string
-// @Param synthesis path string true "Substances name"
-// @Router       /syntheses/{synthesis} [get]
+// @Summary Один синтез
+// @Description Возвращает синтез по ID
+// @Tags Синтезы
+// @Produce json
+// @Success 200 {object} string
+// @Param synthesis path string true "Synthesis ID"
+// @Router /syntheses/{synthesis} [get]
 func (a *Application) get_synthesis(c *gin.Context) {
 	var id = c.Param("synthesis")
 
@@ -298,11 +296,13 @@ func (a *Application) get_synthesis(c *gin.Context) {
 
 }
 
-// @Summary      Adds image
-// @Description  Adds image to substance + minio server
-// @Tags         substances
+// @Summary      Добавить изображение
+// @Description  Добавляет изображение к субстанции + на минио сервер
+// @Tags         Субстанции
 // @Produce      json
-// @Success      302  {object}  string
+// @Success 201 {object} string "Картинка загружена"
+// @Param substance path int true "ID Субстанции"
+// @Param file formData file true "Изображение"
 // @Router       /substances/{substance}/add_image [post]
 func (a *Application) add_image(c *gin.Context) {
 	substance_id, err := strconv.Atoi(c.Param("substance"))
@@ -354,14 +354,14 @@ func (a *Application) add_image(c *gin.Context) {
 
 }
 
-// @Summary      Adds substance to database
-// @Description  Creates a new substance with parameters, specified in json
-// @Tags substances
+// @Summary Добавляет субстанцию
+// @Description Создает новую субстанцию из паркметров JSON
+// @Tags Субстанции
 // @Accept json
-// @Produce      json
-// @Param substance body ds.Substances true "New substance's details"
-// @Success      201  {object}  string "Substance created successfully"
-// @Router       /substances/add [post]
+// @Produce json
+// @Param substance body ds.Substances true "Детали новой субстанции"
+// @Success 201 {object} string "Substance created successfully"
+// @Router /substances/add [post]
 func (a *Application) add_substance(c *gin.Context) {
 	var substance ds.Substances
 
@@ -383,13 +383,13 @@ func (a *Application) add_substance(c *gin.Context) {
 	c.String(http.StatusCreated, "Substance created successfully")
 }
 
-// @Summary      Deletes synthesis
-// @Description  Changes synthesis status to "Удалён"
-// @Tags         syntheses
-// @Produce      json
-// @Success      302  {object}  string
-// @Param synthesis_id path int true "Synthesis id"
-// @Router       /syntheses/{synthesis}/delete [delete]
+// @Summary Удаляет синтез
+// @Description Меняет статус синтеза на "Удалён"
+// @Tags Синтезы
+// @Produce json
+// @Success 200 {object} string "Synthesis was successfully deleted"
+// @Param synthesis path int true "ID Синтеза"
+// @Router /syntheses/{synthesis}/delete [delete]
 func (a *Application) delete_synthesis(c *gin.Context) {
 	synthesis_id, _ := strconv.Atoi(c.Param("synthesis"))
 
@@ -403,14 +403,13 @@ func (a *Application) delete_synthesis(c *gin.Context) {
 	c.String(http.StatusOK, "Synthesis was successfully deleted")
 }
 
-// @Summary      Deletes substance
-// @Description  Finds substance by name and changes its status to "Удалён"
-// @Tags         substances
-// @Accept json
-// @Produce      json
-// @Success      302  {object}  string
-// @Param substance_name path string true "Substances name"
-// @Router       /substances/{substance}/delete [delete]
+// @Summary Удалить субстанцию
+// @Description Меняет статус субстанции на "Удалён"
+// @Tags Субстанции
+// @Produce json
+// @Success 200 {object} string "Substance was successfully deleted"
+// @Param substance path string true "Имя субстанции"
+// @Router /substances/{substance}/delete [delete]
 func (a *Application) delete_substance(c *gin.Context) {
 	substance_name := c.Param("substance")
 
@@ -424,13 +423,13 @@ func (a *Application) delete_substance(c *gin.Context) {
 	c.String(http.StatusFound, "Substance was successfully deleted")
 }
 
-// @Summary      Deletes Synthesis_Substance
-// @Description  Finds Synthesis_Substance by ids and remove it
-// @Tags         synthesis_substance
+// @Summary      Удалить связь синтеза с субстанцией
+// @Description  Ищет связь синтеза с субстанцией и удаляет её
+// @Tags         Синтезы
 // @Produce      json
 // @Success      201  {object}  string
-// @Param id1 path int true "Synthesis id"
-// @Param id2 path int true "Substance id"
+// @Param id1 path int true "ID Синтеза"
+// @Param id2 path int true "ID Субстанции"
 // @Router       /synthesis_substance/{id1}/{id2} [put]
 func (a *Application) delete_ss(c *gin.Context) {
 	id1, _ := strconv.Atoi(c.Param("id1"))
@@ -455,34 +454,34 @@ func (a *Application) delete_ss(c *gin.Context) {
 // @Param id2 path int true "Substance id"
 // @Param ss body ds.Synthesis_substance true "Parameters for ss"
 // @Router       /synthesis_substance/{id1}/{id2}/edit [put]
-func (a *Application) edit_ss(c *gin.Context) {
-	id1, _ := strconv.Atoi(c.Param("id1"))
-	id2, _ := strconv.Atoi(c.Param("id2"))
-	var ss ds.Synthesis_substance
+//func (a *Application) edit_ss(c *gin.Context) {
+//	id1, _ := strconv.Atoi(c.Param("id1"))
+//	id2, _ := strconv.Atoi(c.Param("id2"))
+//	var ss ds.Synthesis_substance
+//
+//	if err := c.BindJSON(&ss); err != nil {
+//		c.Error(err)
+//		return
+//	}
+//
+//	err := a.repo.EditSS(ss, id1, id2)
+//
+//	if err != nil {
+//		c.Error(err)
+//		return
+//	}
+//
+//	c.String(http.StatusCreated, "SynthesisSubstance was successfully edited")
+//}
 
-	if err := c.BindJSON(&ss); err != nil {
-		c.Error(err)
-		return
-	}
-
-	err := a.repo.EditSS(ss, id1, id2)
-
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	c.String(http.StatusCreated, "SynthesisSubstance was successfully edited")
-}
-
-// @Summary      Edits substance
-// @Description  Finds substance by name and updates its fields
-// @Tags         substances
+// @Summary      Редактировать субстанцию
+// @Description  Ищет субстанцию по имени и меняет её
+// @Tags         Субстанции
 // @Accept json
 // @Produce      json
 // @Success      302  {object}  string
-// @Param substance body ds.Substances true "Edited substance"
-// @Param title query string false "Substance name"
+// @Param substance body ds.Substances true "Отредактированная субстанция"
+// @Param title query string false "Имя субстанции"
 // @Router       /substances/{substance}/edit [put]
 func (a *Application) edit_substance(c *gin.Context) {
 	var substance ds.Substances
@@ -533,15 +532,15 @@ func (a *Application) edit_substance(c *gin.Context) {
 //
 //}
 
-// @Summary      Edits synthesis by user
-// @Description  Finds synthesis and updates it fields
-// @Tags         syntheses
+// @Summary      Редактировать синтез
+// @Description  Ищет синтез по ID
+// @Tags         Синтезы
 // @Accept json
 // @Produce      json
-// @Success      302  {object}  string
-// @Param synthesis_body body ds.Syntheses true "Edited substance"
-// @Param synthesis query int false "Substance name"
-// @Router       /syntheses/{synthesis}/edit_user [put]
+// @Success      200  {object}  string
+// @Param synthesis_body body ds.Syntheses true "Отредактированный синтез"
+// @Param synthesis query int false "ID Синтеза"
+// @Router       /syntheses/{synthesis}/edit [put]
 func (a *Application) edit_synthesis(c *gin.Context) {
 	var synthesis_body ds.Syntheses
 	log.Println("edit synthesis by user")
@@ -589,14 +588,14 @@ func (a *Application) set_synthesis_substances(c *gin.Context) {
 
 }
 
-// @Summary      Changes synthesis status as moderator
-// @Description  Changes synthesis status to any available status
-// @Tags         syntheses
+// @Summary      Поменять статус заявки (синтеза) как модератор
+// @Description  Меняет статус заявки на выбранный
+// @Tags         Синтезы
 // @Accept json
 // @Produce      json
-// @Success      201  {object}  string
-// @Param synthesis_body body ds.Syntheses true "Syntheses body"
-// @Param synthesis path int true "Synthesis id"
+// @Success      200  {object}  string
+// @Param synthesis_body body ds.ModConfirm true "Статус"
+// @Param synthesis path int true "ID Синтеза"
 // @Router       /syntheses/{synthesis}/apply [put]
 func (a *Application) apply_synthesis(c *gin.Context) {
 	//var synthesis_body ds.Syntheses
@@ -617,16 +616,7 @@ func (a *Application) apply_synthesis(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	log.Println(confirm.Confirm)
-	//switch synthesis_body.Status {
-	//case "В работе":
-	//	synthesis_body.Date_processed = datatypes.Date(time.Now())
-	//case "Отклонена":
-	//	synthesis_body.Date_processed = datatypes.Date(time.Now())
-	//	synthesis_body.Date_finished = datatypes.Date(time.Now())
-	//case "Завершена":
-	//	synthesis_body.Date_finished = datatypes.Date(time.Now())
-	//}
+
 	if confirm.Confirm == "True" {
 		err := a.repo.ApplySynthesis(synthesis, UserName)
 		if err != nil {
@@ -652,13 +642,13 @@ func (a *Application) apply_synthesis(c *gin.Context) {
 
 }
 
-// @Summary      Changes synthesis status as user
-// @Description  Changes synthesis status as allowed to user
-// @Tags         syntheses
+// @Summary      Поменять статус синтезу как лаборант
+// @Description  Меняет статус как лаборант
+// @Tags         Синтезы
 // @Accept json
 // @Produce      json
 // @Success      201  {object}  string
-// @Param synthesis path int true "Synthesis id"
+// @Param synthesis path int true "ID Синтеза"
 // @Router       /syntheses/{synthesis}/apply_user [put]
 func (a *Application) apply_synthesis_user(c *gin.Context) {
 	//var synthesis_body ds.Syntheses
@@ -691,14 +681,14 @@ func (a *Application) apply_synthesis_user(c *gin.Context) {
 
 }
 
-// @Summary      Order synthesis
-// @Description  Creates a new/ find existing synthesis and adds current substances in it
-// @Tags syntheses
+// @Summary      Заказать синтез
+// @Description  Создаёт новый/находит существующий синтез и добавляет к нему субстанции
+// @Tags Синтезы
 // @Accept json
 // @Produce      json
-// @Success      302  {object}  string
-// @Param request_body body ds.OrderSynthesisRequestBody true "Ordering request parameters"
-// @Router       /syntheses/generate [put]
+// @Success 201 {object} string
+// @Param request_body body ds.OrderSynthesisRequestBody true "Параметры заказа"
+// @Router /syntheses/generate [put]
 func (a *Application) order_synthesis(c *gin.Context) {
 	var request_body ds.OrderSynthesisRequestBody
 
@@ -718,8 +708,6 @@ func (a *Application) order_synthesis(c *gin.Context) {
 		c.String(http.StatusBadGateway, "Cant' parse json")
 		return
 	}
-	log.Println("request_body.Substances")
-	log.Println(request_body.Substances)
 
 	substancesList := strings.Split(request_body.Substances, ",")
 
@@ -788,27 +776,15 @@ type pingResp struct {
 	Status string `json:"status"`
 }
 
-// @Summary      Show hello text
-// @Description  very very friendly response
-// @Tags         Tests
-// @Produce      json
-// @Success      200  {object}  pingResp
-// @Router       /ping/{name} [get]
-func (a *Application) Ping(gCtx *gin.Context) {
-	name := gCtx.Param("name")
-	gCtx.String(http.StatusOK, "Hello %s", name)
-}
-
-// @Summary Login into system
-// @Description Returns your token
-// @Tags auth
+// @Summary Войти в систему
+// @Description Возвращает jwt токен
+// @Tags Аутентификация
 // @Produce json
 // @Accept json
 // @Success 200 {object} loginResp
-// @Param request_body body loginReq true "Login request body"
+// @Param request_body body loginReq true "Тело запроса на вход"
 // @Router /login [post]
 func (a *Application) login(c *gin.Context) {
-	//log.Println("i am here")
 	req := &loginReq{}
 
 	err := json.NewDecoder(c.Request.Body).Decode(req)
@@ -818,16 +794,11 @@ func (a *Application) login(c *gin.Context) {
 		return
 	}
 
-	//log.Println(req.Login)
-
 	user, err := a.repo.GetUserByLogin(req.Login)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
-	log.Println(req.Login + " and" + user.Name)
-	log.Println(req.Password + " and" + user.Pass)
 
 	if req.Login == user.Name && user.Pass == req.Password {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, &ds.JWTClaims{
@@ -868,7 +839,6 @@ func (a *Application) login(c *gin.Context) {
 			TokenType:   "Bearer",
 		})
 	}
-	//log.Println("DSADASDSADASDSAD")
 	c.AbortWithStatus(http.StatusForbidden)
 }
 
@@ -881,13 +851,13 @@ type registerResp struct {
 	Ok bool `json:"ok"`
 }
 
-// @Summary register a new user
-// @Description adds a new user to the database
-// @Tags auth
+// @Summary Зарегистрировать нового пользователя
+// @Description Добавляет нового пользователя в БД
+// @Tags Аутентификация
 // @Produce json
 // @Accept json
 // @Success 200 {object} registerResp
-// @Param request_body body registerReq true "Request body"
+// @Param request_body body registerReq true "Тело запроса"
 // @Router /register [post]
 func (a *Application) register(c *gin.Context) {
 	req := &registerReq{}
@@ -921,9 +891,9 @@ func (a *Application) register(c *gin.Context) {
 	})
 }
 
-// @Summary Logout
-// @Details Deactivates user's current token
-// @Tags auth
+// @Summary Выйти из системы
+// @Details Деактивирует токен пользователя
+// @Tags Аутентификация
 // @Produce json
 // @Accept json
 // @Success 200

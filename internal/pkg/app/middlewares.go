@@ -32,7 +32,9 @@ func (a *Application) WithAuthCheck(assignedRoles ...role.Role) func(context *gi
 			var cookieErr error
 			jwtStr, cookieErr = c.Cookie("One-pot-api-token")
 			if (cookieErr != nil) && (!isPassing) {
-				c.AbortWithStatus(http.StatusBadRequest)
+				log.Println("BR")
+				//c.AbortWithStatus(http.StatusBadRequest)
+				c.AbortWithStatus(http.StatusForbidden)
 			}
 		}
 

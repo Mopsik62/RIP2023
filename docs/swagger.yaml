@@ -13,20 +13,19 @@ definitions:
         type: string
       expires_in:
         type: integer
-      token_type:
+      login:
         type: string
-    type: object
-  app.pingResp:
-    properties:
-      status:
+      role:
+        type: string
+      token_type:
         type: string
     type: object
   app.registerReq:
     properties:
-      name:
+      login:
         description: лучше назвать то же самое что login
         type: string
-      pass:
+      password:
         type: string
     type: object
   app.registerResp:
@@ -34,8 +33,17 @@ definitions:
       ok:
         type: boolean
     type: object
+  ds.ModConfirm:
+    properties:
+      confirm:
+        type: string
+    type: object
   ds.OrderSynthesisRequestBody:
     properties:
+      additional_conditions:
+        type: string
+      status:
+        type: string
       substances:
         type: string
       user_name:
@@ -74,19 +82,10 @@ definitions:
         type: string
       status:
         type: string
+      time:
+        type: string
       user_name:
         type: string
-    type: object
-  ds.Synthesis_substance:
-    properties:
-      result:
-        type: string
-      stage:
-        type: integer
-      substance_ID:
-        type: integer
-      synthesis_ID:
-        type: integer
     type: object
 info:
   contact: {}
@@ -95,9 +94,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Returns your token
+      description: Возвращает jwt токен
       parameters:
-      - description: Login request body
+      - description: Тело запроса на вход
         in: body
         name: request_body
         required: true
@@ -110,9 +109,9 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/app.loginResp'
-      summary: Login into system
+      summary: Войти в систему
       tags:
-      - auth
+      - Аутентификация
   /logout:
     post:
       consumes:
@@ -125,26 +124,13 @@ paths:
       summary: Выйти из системы
       tags:
       - Аутентификация
-  /ping/{name}:
-    get:
-      description: very very friendly response
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/app.pingResp'
-      summary: Show hello text
-      tags:
-      - Tests
   /register:
     post:
       consumes:
       - application/json
-      description: adds a new user to the database
+      description: Добавляет нового пользователя в БД
       parameters:
-      - description: Request body
+      - description: Тело запроса
         in: body
         name: request_body
         required: true
@@ -157,22 +143,22 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/app.registerResp'
-      summary: register a new user
+      summary: Зарегистрировать нового пользователя
       tags:
-      - auth
+      - Аутентификация
   /substances:
     get:
       consumes:
       - application/json
-      description: Returns all existing substances
+      description: Вовзращает все субстанции
       parameters:
-      - description: Substances name pattern
+      - description: Имя субстанции
         in: query
         name: name_pattern
         type: string
-      - description: Substances title
+      - description: Статус субстанции
         in: query
-        name: title
+        name: status
         type: string
       produces:
       - application/json
@@ -181,14 +167,14 @@ paths:
           description: OK
           schema:
             type: ""
-      summary: Get all existing substances
+      summary: Список субстанций
       tags:
-      - substances
+      - Субстанции
   /substances/{substance}:
     get:
-      description: Returns substance with given name
+      description: Возвращает одну субстанцию по имени
       parameters:
-      - description: Substances name
+      - description: Имя субстанции
         in: path
         name: substance
         required: true
@@ -197,59 +183,68 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Субстанция
           schema:
             type: string
-      summary: Get substance
+      summary: Одна субстанция
       tags:
-      - substances
+      - Субстанции
   /substances/{substance}/add_image:
     post:
-      description: Adds image to substance + minio server
+      description: Добавляет изображение к субстанции + на минио сервер
+      parameters:
+      - description: ID Субстанции
+        in: path
+        name: substance
+        required: true
+        type: integer
+      - description: Изображение
+        in: formData
+        name: file
+        required: true
+        type: file
       produces:
       - application/json
       responses:
-        "302":
-          description: Found
+        "201":
+          description: Картинка загружена
           schema:
             type: string
-      summary: Adds image
+      summary: Добавить изображение
       tags:
-      - substances
+      - Субстанции
   /substances/{substance}/delete:
     delete:
-      consumes:
-      - application/json
-      description: Finds substance by name and changes its status to "Удалён"
+      description: Меняет статус субстанции на "Удалён"
       parameters:
-      - description: Substances name
+      - description: Имя субстанции
         in: path
-        name: substance_name
+        name: substance
         required: true
         type: string
       produces:
       - application/json
       responses:
-        "302":
-          description: Found
+        "200":
+          description: Substance was successfully deleted
           schema:
             type: string
-      summary: Deletes substance
+      summary: Удалить субстанцию
       tags:
-      - substances
+      - Субстанции
   /substances/{substance}/edit:
     put:
       consumes:
       - application/json
-      description: Finds substance by name and updates its fields
+      description: Ищет субстанцию по имени и меняет её
       parameters:
-      - description: Edited substance
+      - description: Отредактированная субстанция
         in: body
         name: substance
         required: true
         schema:
           $ref: '#/definitions/ds.Substances'
-      - description: Substance name
+      - description: Имя субстанции
         in: query
         name: title
         type: string
@@ -260,16 +255,16 @@ paths:
           description: Found
           schema:
             type: string
-      summary: Edits substance
+      summary: Редактировать субстанцию
       tags:
-      - substances
+      - Субстанции
   /substances/add:
     post:
       consumes:
       - application/json
-      description: Creates a new substance with parameters, specified in json
+      description: Создает новую субстанцию из паркметров JSON
       parameters:
-      - description: New substance's details
+      - description: Детали новой субстанции
         in: body
         name: substance
         required: true
@@ -282,24 +277,28 @@ paths:
           description: Substance created successfully
           schema:
             type: string
-      summary: Adds substance to database
+      summary: Добавляет субстанцию
       tags:
-      - substances
+      - Субстанции
   /syntheses:
     get:
-      description: Returns list of all syntheses
+      description: Получает все синтезы
       parameters:
-      - description: Substances oldest date
+      - description: Первая дата
         in: query
         name: date1
         type: string
-      - description: Substances newest date
+      - description: Вторая дата
         in: query
         name: date2
         type: string
-      - description: Substances status
+      - description: Статус
         in: query
         name: status
+        type: string
+      - description: Создатель
+        in: query
+        name: creator
         type: string
       produces:
       - application/json
@@ -308,14 +307,14 @@ paths:
           description: OK
           schema:
             type: ""
-      summary: Get syntheses
+      summary: Список синтезов
       tags:
-      - syntheses
+      - Синтезы
   /syntheses/{synthesis}:
     get:
-      description: Returns synthesis with given id
+      description: Возвращает синтез по ID
       parameters:
-      - description: Substances name
+      - description: Synthesis ID
         in: path
         name: synthesis
         required: true
@@ -323,26 +322,26 @@ paths:
       produces:
       - application/json
       responses:
-        "302":
-          description: Found
+        "200":
+          description: OK
           schema:
             type: string
-      summary: Get synthesis
+      summary: Один синтез
       tags:
-      - syntheses
+      - Синтезы
   /syntheses/{synthesis}/apply:
     put:
       consumes:
       - application/json
-      description: Changes synthesis status to any available status
+      description: Меняет статус заявки на выбранный
       parameters:
-      - description: Syntheses body
+      - description: Статус
         in: body
         name: synthesis_body
         required: true
         schema:
-          $ref: '#/definitions/ds.Syntheses'
-      - description: Synthesis id
+          $ref: '#/definitions/ds.ModConfirm'
+      - description: ID Синтеза
         in: path
         name: synthesis
         required: true
@@ -350,26 +349,20 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
             type: string
-      summary: Changes synthesis status as moderator
+      summary: Поменять статус заявки (синтеза) как модератор
       tags:
-      - syntheses
+      - Синтезы
   /syntheses/{synthesis}/apply_user:
     put:
       consumes:
       - application/json
-      description: Changes synthesis status as allowed to user
+      description: Меняет статус как лаборант
       parameters:
-      - description: Syntheses body
-        in: body
-        name: synthesis_body
-        required: true
-        schema:
-          $ref: '#/definitions/ds.Syntheses'
-      - description: Synthesis id
+      - description: ID Синтеза
         in: path
         name: synthesis
         required: true
@@ -381,62 +374,61 @@ paths:
           description: Created
           schema:
             type: string
-      summary: Changes synthesis status as user
+      summary: Поменять статус синтезу как лаборант
       tags:
-      - syntheses
+      - Синтезы
   /syntheses/{synthesis}/delete:
     delete:
-      description: Changes synthesis status to "Удалён"
+      description: Меняет статус синтеза на "Удалён"
       parameters:
-      - description: Synthesis id
+      - description: ID Синтеза
         in: path
-        name: synthesis_id
+        name: synthesis
         required: true
         type: integer
       produces:
       - application/json
       responses:
-        "302":
-          description: Found
+        "200":
+          description: Synthesis was successfully deleted
           schema:
             type: string
-      summary: Deletes synthesis
+      summary: Удаляет синтез
       tags:
-      - syntheses
+      - Синтезы
   /syntheses/{synthesis}/edit:
     put:
       consumes:
       - application/json
-      description: Finds synthesis and updates it fields
+      description: Ищет синтез по ID
       parameters:
-      - description: Edited substance
+      - description: Отредактированный синтез
         in: body
         name: synthesis_body
         required: true
         schema:
           $ref: '#/definitions/ds.Syntheses'
-      - description: Substance name
+      - description: ID Синтеза
         in: query
         name: synthesis
         type: integer
       produces:
       - application/json
       responses:
-        "302":
-          description: Found
+        "200":
+          description: OK
           schema:
             type: string
-      summary: Edits synthesis
+      summary: Редактировать синтез
       tags:
-      - syntheses
+      - Синтезы
   /syntheses/generate:
     put:
       consumes:
       - application/json
-      description: Creates a new/ find existing synthesis and adds current substances
-        in it
+      description: Создаёт новый/находит существующий синтез и добавляет к нему субстанции
       parameters:
-      - description: Ordering request parameters
+      - description: Параметры заказа
         in: body
         name: request_body
         required: true
@@ -445,23 +437,23 @@ paths:
       produces:
       - application/json
       responses:
-        "302":
-          description: Found
+        "201":
+          description: Created
           schema:
             type: string
-      summary: Order synthesis
+      summary: Заказать синтез
       tags:
-      - syntheses
+      - Синтезы
   /synthesis_substance/{id1}/{id2}:
-    delete:
-      description: Finds Synthesis_Substance by ids and remove it
+    put:
+      description: Ищет связь синтеза с субстанцией и удаляет её
       parameters:
-      - description: Synthesis id
+      - description: ID Синтеза
         in: path
         name: id1
         required: true
         type: integer
-      - description: Substance id
+      - description: ID Субстанции
         in: path
         name: id2
         required: true
@@ -473,39 +465,7 @@ paths:
           description: Created
           schema:
             type: string
-      summary: Deletes Synthesis_Substance
+      summary: Удалить связь синтеза с субстанцией
       tags:
-      - synthesis_substance
-  /synthesis_substance/{id1}/{id2}/edit:
-    put:
-      consumes:
-      - application/json
-      description: Finds Synthesis_Substance by ids and edits it
-      parameters:
-      - description: Synthesis id
-        in: path
-        name: id1
-        required: true
-        type: integer
-      - description: Substance id
-        in: path
-        name: id2
-        required: true
-        type: integer
-      - description: Parameters for ss
-        in: body
-        name: ss
-        required: true
-        schema:
-          $ref: '#/definitions/ds.Synthesis_substance'
-      produces:
-      - application/json
-      responses:
-        "302":
-          description: Found
-          schema:
-            type: string
-      summary: Edits Synthesis_Substance
-      tags:
-      - synthesis_substance
+      - Синтезы
 swagger: "2.0"

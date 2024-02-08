@@ -91,7 +91,7 @@ func (r *Repository) Register(user *ds.User) error {
 	return r.db.Create(user).Error
 }
 
-func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id string, status string) (ds.ResponseData, error) {
+func (r *Repository) GetAllSubstances(name_pattern string, user_id string, status string) (ds.ResponseData, error) {
 	substances := []ds.Substances{}
 	responseData := ds.ResponseData{}
 	var tx *gorm.DB = r.db
@@ -110,7 +110,12 @@ func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id
 		synthesis1 := synthesis.ID
 		//log.Println("СИнтезис ид = ")
 		//log.Println(substanceID)
-		responseData.SynthesesChern = synthesis1
+		if user_id != "00000000-0000-0000-0000-000000000000" {
+			responseData.SynthesesChern = synthesis1
+
+		} else {
+			responseData.SynthesesChern = 0
+		}
 	}
 	tx = r.db
 	if name_pattern != "" {
@@ -118,9 +123,7 @@ func (r *Repository) GetAllSubstances(title string, name_pattern string, user_id
 
 	}
 	//log.Println(responseData.SynthesesIDs)
-	if title != "" {
-		tx = tx.Where("title = ?", title) //зачем title если есть name_pattern? ченкуть
-	}
+
 	if status != "All" {
 		tx = tx.Where("status = ?", "Активно")
 	} //тут скорее всего 4-я сломается т.к. добавил статус пустой

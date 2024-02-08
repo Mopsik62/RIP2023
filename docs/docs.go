@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/login": {
             "post": {
-                "description": "Returns your token",
+                "description": "Возвращает jwt токен",
                 "consumes": [
                     "application/json"
                 ],
@@ -25,12 +25,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Аутентификация"
                 ],
-                "summary": "Login into system",
+                "summary": "Войти в систему",
                 "parameters": [
                     {
-                        "description": "Login request body",
+                        "description": "Тело запроса на вход",
                         "name": "request_body",
                         "in": "body",
                         "required": true,
@@ -68,29 +68,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/ping/{name}": {
-            "get": {
-                "description": "very very friendly response",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tests"
-                ],
-                "summary": "Show hello text",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/app.pingResp"
-                        }
-                    }
-                }
-            }
-        },
         "/register": {
             "post": {
-                "description": "adds a new user to the database",
+                "description": "Добавляет нового пользователя в БД",
                 "consumes": [
                     "application/json"
                 ],
@@ -98,12 +78,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "Аутентификация"
                 ],
-                "summary": "register a new user",
+                "summary": "Зарегистрировать нового пользователя",
                 "parameters": [
                     {
-                        "description": "Request body",
+                        "description": "Тело запроса",
                         "name": "request_body",
                         "in": "body",
                         "required": true,
@@ -124,7 +104,7 @@ const docTemplate = `{
         },
         "/substances": {
             "get": {
-                "description": "Returns all existing substances",
+                "description": "Вовзращает все субстанции",
                 "consumes": [
                     "application/json"
                 ],
@@ -132,20 +112,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "substances"
+                    "Субстанции"
                 ],
-                "summary": "Get all existing substances",
+                "summary": "Список субстанций",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Substances name pattern",
+                        "description": "Имя субстанции",
                         "name": "name_pattern",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Substances title",
-                        "name": "title",
+                        "description": "Статус субстанции",
+                        "name": "status",
                         "in": "query"
                     }
                 ],
@@ -161,7 +141,7 @@ const docTemplate = `{
         },
         "/substances/add": {
             "post": {
-                "description": "Creates a new substance with parameters, specified in json",
+                "description": "Создает новую субстанцию из паркметров JSON",
                 "consumes": [
                     "application/json"
                 ],
@@ -169,12 +149,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "substances"
+                    "Субстанции"
                 ],
-                "summary": "Adds substance to database",
+                "summary": "Добавляет субстанцию",
                 "parameters": [
                     {
-                        "description": "New substance's details",
+                        "description": "Детали новой субстанции",
                         "name": "substance",
                         "in": "body",
                         "required": true,
@@ -195,18 +175,18 @@ const docTemplate = `{
         },
         "/substances/{substance}": {
             "get": {
-                "description": "Returns substance with given name",
+                "description": "Возвращает одну субстанцию по имени",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "substances"
+                    "Субстанции"
                 ],
-                "summary": "Get substance",
+                "summary": "Одна субстанция",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Substances name",
+                        "description": "Имя субстанции",
                         "name": "substance",
                         "in": "path",
                         "required": true
@@ -214,7 +194,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Субстанция",
                         "schema": {
                             "type": "string"
                         }
@@ -224,17 +204,33 @@ const docTemplate = `{
         },
         "/substances/{substance}/add_image": {
             "post": {
-                "description": "Adds image to substance + minio server",
+                "description": "Добавляет изображение к субстанции + на минио сервер",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "substances"
+                    "Субстанции"
                 ],
-                "summary": "Adds image",
+                "summary": "Добавить изображение",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID Субстанции",
+                        "name": "substance",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Изображение",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
                 "responses": {
-                    "302": {
-                        "description": "Found",
+                    "201": {
+                        "description": "Картинка загружена",
                         "schema": {
                             "type": "string"
                         }
@@ -244,29 +240,26 @@ const docTemplate = `{
         },
         "/substances/{substance}/delete": {
             "delete": {
-                "description": "Finds substance by name and changes its status to \"Удалён\"",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Меняет статус субстанции на \"Удалён\"",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "substances"
+                    "Субстанции"
                 ],
-                "summary": "Deletes substance",
+                "summary": "Удалить субстанцию",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Substances name",
-                        "name": "substance_name",
+                        "description": "Имя субстанции",
+                        "name": "substance",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "302": {
-                        "description": "Found",
+                    "200": {
+                        "description": "Substance was successfully deleted",
                         "schema": {
                             "type": "string"
                         }
@@ -276,7 +269,7 @@ const docTemplate = `{
         },
         "/substances/{substance}/edit": {
             "put": {
-                "description": "Finds substance by name and updates its fields",
+                "description": "Ищет субстанцию по имени и меняет её",
                 "consumes": [
                     "application/json"
                 ],
@@ -284,12 +277,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "substances"
+                    "Субстанции"
                 ],
-                "summary": "Edits substance",
+                "summary": "Редактировать субстанцию",
                 "parameters": [
                     {
-                        "description": "Edited substance",
+                        "description": "Отредактированная субстанция",
                         "name": "substance",
                         "in": "body",
                         "required": true,
@@ -299,7 +292,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Substance name",
+                        "description": "Имя субстанции",
                         "name": "title",
                         "in": "query"
                     }
@@ -316,31 +309,37 @@ const docTemplate = `{
         },
         "/syntheses": {
             "get": {
-                "description": "Returns list of all syntheses",
+                "description": "Получает все синтезы",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "syntheses"
+                    "Синтезы"
                 ],
-                "summary": "Get syntheses",
+                "summary": "Список синтезов",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Substances oldest date",
+                        "description": "Первая дата",
                         "name": "date1",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Substances newest date",
+                        "description": "Вторая дата",
                         "name": "date2",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Substances status",
+                        "description": "Статус",
                         "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Создатель",
+                        "name": "creator",
                         "in": "query"
                     }
                 ],
@@ -356,7 +355,7 @@ const docTemplate = `{
         },
         "/syntheses/generate": {
             "put": {
-                "description": "Creates a new/ find existing synthesis and adds current substances in it",
+                "description": "Создаёт новый/находит существующий синтез и добавляет к нему субстанции",
                 "consumes": [
                     "application/json"
                 ],
@@ -364,88 +363,18 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "syntheses"
+                    "Синтезы"
                 ],
-                "summary": "Order synthesis",
+                "summary": "Заказать синтез",
                 "parameters": [
                     {
-                        "description": "Ordering request parameters",
+                        "description": "Параметры заказа",
                         "name": "request_body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/ds.OrderSynthesisRequestBody"
                         }
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/syntheses/{synthesis}": {
-            "get": {
-                "description": "Returns synthesis with given id",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "syntheses"
-                ],
-                "summary": "Get synthesis",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Substances name",
-                        "name": "synthesis",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/syntheses/{synthesis}/apply": {
-            "put": {
-                "description": "Changes synthesis status to any available status",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "syntheses"
-                ],
-                "summary": "Changes synthesis status as moderator",
-                "parameters": [
-                    {
-                        "description": "Syntheses body",
-                        "name": "synthesis_body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ds.Syntheses"
-                        }
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Synthesis id",
-                        "name": "synthesis",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -458,9 +387,38 @@ const docTemplate = `{
                 }
             }
         },
-        "/syntheses/{synthesis}/apply_user": {
+        "/syntheses/{synthesis}": {
+            "get": {
+                "description": "Возвращает синтез по ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Синтезы"
+                ],
+                "summary": "Один синтез",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Synthesis ID",
+                        "name": "synthesis",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}/apply": {
             "put": {
-                "description": "Changes synthesis status as allowed to user",
+                "description": "Меняет статус заявки на выбранный",
                 "consumes": [
                     "application/json"
                 ],
@@ -468,22 +426,54 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "syntheses"
+                    "Синтезы"
                 ],
-                "summary": "Changes synthesis status as user",
+                "summary": "Поменять статус заявки (синтеза) как модератор",
                 "parameters": [
                     {
-                        "description": "Syntheses body",
+                        "description": "Статус",
                         "name": "synthesis_body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ds.Syntheses"
+                            "$ref": "#/definitions/ds.ModConfirm"
                         }
                     },
                     {
                         "type": "integer",
-                        "description": "Synthesis id",
+                        "description": "ID Синтеза",
+                        "name": "synthesis",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/syntheses/{synthesis}/apply_user": {
+            "put": {
+                "description": "Меняет статус как лаборант",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Синтезы"
+                ],
+                "summary": "Поменять статус синтезу как лаборант",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID Синтеза",
                         "name": "synthesis",
                         "in": "path",
                         "required": true
@@ -501,26 +491,26 @@ const docTemplate = `{
         },
         "/syntheses/{synthesis}/delete": {
             "delete": {
-                "description": "Changes synthesis status to \"Удалён\"",
+                "description": "Меняет статус синтеза на \"Удалён\"",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "syntheses"
+                    "Синтезы"
                 ],
-                "summary": "Deletes synthesis",
+                "summary": "Удаляет синтез",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Synthesis id",
-                        "name": "synthesis_id",
+                        "description": "ID Синтеза",
+                        "name": "synthesis",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "302": {
-                        "description": "Found",
+                    "200": {
+                        "description": "Synthesis was successfully deleted",
                         "schema": {
                             "type": "string"
                         }
@@ -530,7 +520,7 @@ const docTemplate = `{
         },
         "/syntheses/{synthesis}/edit": {
             "put": {
-                "description": "Finds synthesis and updates it fields",
+                "description": "Ищет синтез по ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -538,12 +528,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "syntheses"
+                    "Синтезы"
                 ],
-                "summary": "Edits synthesis",
+                "summary": "Редактировать синтез",
                 "parameters": [
                     {
-                        "description": "Edited substance",
+                        "description": "Отредактированный синтез",
                         "name": "synthesis_body",
                         "in": "body",
                         "required": true,
@@ -553,14 +543,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Substance name",
+                        "description": "ID Синтеза",
                         "name": "synthesis",
                         "in": "query"
                     }
                 ],
                 "responses": {
-                    "302": {
-                        "description": "Found",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "string"
                         }
@@ -569,26 +559,26 @@ const docTemplate = `{
             }
         },
         "/synthesis_substance/{id1}/{id2}": {
-            "delete": {
-                "description": "Finds Synthesis_Substance by ids and remove it",
+            "put": {
+                "description": "Ищет связь синтеза с субстанцией и удаляет её",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "synthesis_substance"
+                    "Синтезы"
                 ],
-                "summary": "Deletes Synthesis_Substance",
+                "summary": "Удалить связь синтеза с субстанцией",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Synthesis id",
+                        "description": "ID Синтеза",
                         "name": "id1",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "Substance id",
+                        "description": "ID Субстанции",
                         "name": "id2",
                         "in": "path",
                         "required": true
@@ -597,54 +587,6 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Created",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/synthesis_substance/{id1}/{id2}/edit": {
-            "put": {
-                "description": "Finds Synthesis_Substance by ids and edits it",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "synthesis_substance"
-                ],
-                "summary": "Edits Synthesis_Substance",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Synthesis id",
-                        "name": "id1",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Substance id",
-                        "name": "id2",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Parameters for ss",
-                        "name": "ss",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ds.Synthesis_substance"
-                        }
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Found",
                         "schema": {
                             "type": "string"
                         }
@@ -674,15 +616,13 @@ const docTemplate = `{
                 "expires_in": {
                     "type": "integer"
                 },
-                "token_type": {
+                "login": {
                     "type": "string"
-                }
-            }
-        },
-        "app.pingResp": {
-            "type": "object",
-            "properties": {
-                "status": {
+                },
+                "role": {
+                    "type": "string"
+                },
+                "token_type": {
                     "type": "string"
                 }
             }
@@ -690,11 +630,11 @@ const docTemplate = `{
         "app.registerReq": {
             "type": "object",
             "properties": {
-                "name": {
+                "login": {
                     "description": "лучше назвать то же самое что login",
                     "type": "string"
                 },
-                "pass": {
+                "password": {
                     "type": "string"
                 }
             }
@@ -707,9 +647,23 @@ const docTemplate = `{
                 }
             }
         },
+        "ds.ModConfirm": {
+            "type": "object",
+            "properties": {
+                "confirm": {
+                    "type": "string"
+                }
+            }
+        },
         "ds.OrderSynthesisRequestBody": {
             "type": "object",
             "properties": {
+                "additional_conditions": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
                 "substances": {
                     "type": "string"
                 },
@@ -768,25 +722,11 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "time": {
+                    "type": "string"
+                },
                 "user_name": {
                     "type": "string"
-                }
-            }
-        },
-        "ds.Synthesis_substance": {
-            "type": "object",
-            "properties": {
-                "result": {
-                    "type": "string"
-                },
-                "stage": {
-                    "type": "integer"
-                },
-                "substance_ID": {
-                    "type": "integer"
-                },
-                "synthesis_ID": {
-                    "type": "integer"
                 }
             }
         }

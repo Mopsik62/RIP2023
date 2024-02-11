@@ -100,30 +100,6 @@ func (s *Singleton) GetUserIDAsString() string {
 
 func (a *Application) StartServer() {
 	a.r = gin.Default()
-	log.Println("Server start up1")
-	//#Услуги - GET список(1), GET одна запись(2), POST добавление(3), PUT изменение(4),
-	//DELETE удаление(5), POST добавление в заявку (6)(объединил с сформированием заявки(synthesis(4))
-	//	a.r.GET("substances", a.get_substances)           //(1)
-	//a.r.GET("substances/:substance", a.get_substance) //(2)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("substances/add", a.add_substance) //(3)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("substances/:substance/edit", a.edit_substance)        //(4)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("substances/:substance/delete", a.delete_substance) //(5)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).POST("substances/:substance/add_image", a.add_image)
-
-	//Заявки - GET список(1),
-	//GET одна запись (2), PUT изменение(3),
-	//PUT сформировать создателем(4), PUT завершить/отклонить модератором(5), DELETE удаление(6)
-	//a.r.GET("syntheses", a.get_syntheses)                              //(1)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses/:synthesis", a.get_synthesis)                   //(2)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("syntheses/:synthesis/edit", a.edit_synthesis)             //(3)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/generate", a.order_synthesis)                   //(4)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("syntheses/:synthesis/apply", a.apply_synthesis)           //(5)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user) //(5)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("syntheses/:synthesis/delete", a.delete_synthesis) //(6)
-
-	//м-м - DELETE удаление из заявки(1), PUT изменение количества/значения в м-м(2)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss) //(1)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss) //(2)
 
 	// swagger
 	docs.SwaggerInfo.Title = "One-pot syntheses"
@@ -145,7 +121,6 @@ func (a *Application) StartServer() {
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/set_substances", a.set_synthesis_substances)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user) //(5)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/edit", a.edit_synthesis)             //(3)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss)            //(2)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).DELETE("syntheses/:synthesis/delete", a.delete_synthesis)            //(6)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/set_synthesis_time", a.set_synthesis_time) //(5)
@@ -156,17 +131,7 @@ func (a *Application) StartServer() {
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("substances/:substance/delete", a.delete_substance) //(5)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).POST("substances/:substance/add_image", a.add_image)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).POST("substances/add", a.add_substance)
-
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses", a.get_syntheses)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).GET("syntheses/:synthesis", a.get_synthesis)                   //(2)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("syntheses/:synthesis/edit", a.edit_synthesis) //(3)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/generate", a.order_synthesis)                   //(4)
 	a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("syntheses/:synthesis/apply", a.apply_synthesis) //(5)
-
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin, role.User)).PUT("syntheses/:synthesis/apply_user", a.apply_synthesis_user) //(5)
-
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).DELETE("synthesis_substance/:id1/:id2", a.delete_ss) //(1)
-	//a.r.Use(a.WithAuthCheck(role.Moderator, role.Admin)).PUT("synthesis_substance/:id1/:id2/edit", a.edit_ss) //(2)
 
 	a.r.Run(":8000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
@@ -196,8 +161,7 @@ func (a *Application) get_substances(c *gin.Context) {
 
 	//log.Println("dsadas")
 	if _userUUID != nil {
-		userUUID = _userUUID.(uuid.UUID)
-		//log.Println(userUUID)
+		userUUID = _userUUID.(uuid.UUID) //log.Println(userUUID)
 		//log.Println("NO NILLLLLLLLLLLLL")
 
 	}
@@ -291,7 +255,7 @@ func (a *Application) get_synthesis(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	log.Println(found_synthesis)
+	//log.Println(found_synthesis)
 	c.JSON(http.StatusOK, found_synthesis)
 
 }
@@ -655,7 +619,7 @@ func (a *Application) apply_synthesis_user(c *gin.Context) {
 
 	var synthesis = c.Param("synthesis")
 
-	err := a.repo.ApplySynthesis(synthesis, "")
+	err := a.repo.ApplySynthesisUser(synthesis, "")
 
 	if err != nil {
 		c.Error(err)
@@ -811,14 +775,14 @@ func (a *Application) login(c *gin.Context) {
 			Scopes:   []string{}, // test data
 			Role:     user.Role,
 		})
-		log.Println("token")
+		//log.Println("token")
 		if token == nil {
 			c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("token is nil"))
 
 			return
 		}
-		log.Println("token")
-		log.Println(token)
+		//log.Println("token")
+		//log.Println(token)
 
 		jwtToken := "test"
 
@@ -830,7 +794,7 @@ func (a *Application) login(c *gin.Context) {
 		}
 
 		c.SetCookie("One-pot-api-token", "Bearer "+strToken, 3600000000000, "", "", true, true)
-		log.Println("role= " + user.Role)
+		//log.Println("role= " + user.Role)
 		c.JSON(http.StatusOK, loginResp{
 			Login:       user.Name,
 			Role:        string(user.Role),
@@ -970,7 +934,7 @@ func (a *Application) set_synthesis_time(c *gin.Context) {
 	//log.Println("Зашло")
 	var synthesis_id = c.Param("synthesis")
 	var time = c.Query("time")
-
+	//log.Println(time)
 	//err := json.NewDecoder(c.Request.Body).Decode(req)
 	//if err != nil {
 	//	c.AbortWithError(http.StatusBadRequest, err)
@@ -986,7 +950,7 @@ func (a *Application) set_synthesis_time(c *gin.Context) {
 	synthesis.ID = num
 	synthesis.Time = time
 
-	log.Println(time)
+	//log.Println(time)
 
 	err = a.repo.EditSynthesis(synthesis, synthesis_id)
 	if err != nil {

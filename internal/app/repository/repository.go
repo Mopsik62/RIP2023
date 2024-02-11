@@ -5,7 +5,6 @@ import (
 	"awesomeProject1/internal/app/role"
 	"fmt"
 	"github.com/google/uuid"
-	"gorm.io/datatypes"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -315,15 +314,18 @@ func (r *Repository) EditSynthesis(synthesis ds.Syntheses, id string) error {
 func (r *Repository) GenerateSynthesis(synthesis ds.Syntheses, id string) error {
 	return r.db.Model(&ds.Syntheses{}).Where("id = ? AND status = ?", id, "Черновик").Updates(synthesis).Error
 }
+func (r *Repository) ApplySynthesisUser(id string, userName string) error {
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Сформирован"}).Error
+}
 func (r *Repository) ApplySynthesis(id string, userName string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "В работе", "date_processed": datatypes.Date(time.Now()), "moderator": userName}).Error
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "В работе", "date_processed": time.Now(), "moderator": userName}).Error
 }
 func (r *Repository) DenySynthesis(id string, userName string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Отклонён", "date_finished": datatypes.Date(time.Now()), "moderator": userName}).Error
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Отклонён", "date_finished": time.Now(), "moderator": userName}).Error
 }
 
 func (r *Repository) EndSynthesis(id string, userName string) error {
-	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Завершён", "date_finished": datatypes.Date(time.Now()), "moderator": userName}).Error
+	return r.db.Model(&ds.Syntheses{}).Where("id = ?", id).Updates(map[string]interface{}{"status": "Завершён", "date_finished": time.Now(), "moderator": userName}).Error
 }
 
 func (r *Repository) CreateSynthesisSubstance(synthesis_substance ds.Synthesis_substance) error {
@@ -333,7 +335,7 @@ func (r *Repository) SetSubstanceImage(id int, image string) error {
 	return r.db.Model(&ds.Substances{}).Where("id = ?", id).Update("image", image).Error
 }
 func (r *Repository) LogicalDeleteSubstance(substance_name string) error {
-	return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Updates(map[string]interface{}{"status": "Удалён", "additional_conditions": "", "date_finished": datatypes.Date(time.Now())}).Error
+	return r.db.Model(&ds.Substances{}).Where("title = ?", substance_name).Updates(map[string]interface{}{"status": "Удалён", "additional_conditions": "", "date_finished": time.Now()}).Error
 }
 func (r *Repository) DeleteSS(id1 int, id2 int) error {
 	return r.db.Model(&ds.Synthesis_substance{}).Where("synthesis_id = ? AND substance_id = ?", id1, id2).Delete(&ds.Synthesis_substance{}).Error
@@ -355,11 +357,11 @@ func (r *Repository) OrderSynthesis(requestBody ds.OrderSynthesisRequestBody) er
 			continue
 		}
 		// Добавляем полученный идентификатор в intList
-		log.Println(substanceID)
+		//log.Println(substanceID)
 		intList = append(intList, substanceID)
 	}
 
-	current_date := datatypes.Date(time.Now())
+	current_date := time.Now()
 
 	synthesis := ds.Syntheses{}
 	synthesis.Status = requestBody.Status

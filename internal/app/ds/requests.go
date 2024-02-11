@@ -1,7 +1,7 @@
 package ds
 
 import (
-	"gorm.io/datatypes"
+	"time"
 )
 
 type GetSubstancesRequestBody struct {
@@ -30,9 +30,9 @@ type SynthesesOne struct {
 	Name                  string
 	Additional_conditions string
 	Status                string
-	Date_created          datatypes.Date `gorm:"not null"`
-	Date_processed        datatypes.Date
-	Date_finished         datatypes.Date
+	Date_created          time.Time `gorm:"not null"`
+	Date_processed        time.Time
+	Date_finished         time.Time
 	Moderator             string
 	User_name             string
 	Time                  string

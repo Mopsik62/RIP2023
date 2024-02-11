@@ -1,7 +1,7 @@
 package ds
 
 import (
-	"gorm.io/datatypes"
+	"time"
 )
 
 type Substances struct {
@@ -24,10 +24,10 @@ type Syntheses struct {
 	ID                    int `gorm:"primarykey;AUTO_INCREMENT"`
 	Name                  string
 	Additional_conditions string
-	Status                string         `gorm:"not null"`
-	Date_created          datatypes.Date `gorm:"not null" swaggertype:"primitive,string"`
-	Date_processed        datatypes.Date `swaggertype:"primitive,string"`
-	Date_finished         datatypes.Date `swaggertype:"primitive,string"`
+	Status                string    `gorm:"not null"`
+	Date_created          time.Time `gorm:"not null" swaggertype:"primitive,string"`
+	Date_processed        time.Time `swaggertype:"primitive,string"`
+	Date_finished         time.Time `swaggertype:"primitive,string"`
 	Moderator             string
 	User_name             string `gorm:"not null"`
 	Time                  string

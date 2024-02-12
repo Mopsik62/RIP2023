@@ -32,6 +32,7 @@ func StartServer() {
 
 	r.GET("/", loadSubstances)
 	r.GET("/:title", loadSubstance)
+	r.GET("/cart", loadCart)
 
 	r.Run(":8000") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
@@ -75,4 +76,14 @@ func loadSubstance(c *gin.Context) {
 			return
 		}
 	}
+}
+
+func loadCart(c *gin.Context) {
+	c.HTML(http.StatusOK, "cart.html", gin.H{
+		"ID":         "1",
+		"Title":      "Парацетамол",
+		"Data":       "12.02.2024",
+		"Conditions": "",
+		"Substances": "Метанол, Триглицеридин",
+	})
 }

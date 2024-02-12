@@ -87,3 +87,14 @@ body {
 footer {
     text-align: right;
 }
+
+.request {
+    text-align: center;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+.cart-link {
+    display: flex;
+    justify-content: flex-end;
+}
